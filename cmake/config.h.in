@@ -1,0 +1,11 @@
+#ifndef CONFIG_INSIGHT_INTERNAL_CONFIG_H_
+#define CONFIG_INSIGHT_INTERNAL_CONFIG_H_
+
+// If defined, Insight was built as a shared library.
+@INSIGHT_USING_SHARED_LIBRARY@
+
+// If defined, Insight will be compiled with Apple Acclerate Framework
+// support.
+@INSIGHT_USE_ACCELERATE@
+
+#endif  // CONFIG_INSIGHT_INTERNAL_CONFIG_H_
