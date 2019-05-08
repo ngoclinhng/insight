@@ -1,15 +1,14 @@
 # BLAS backend options for Insight
-# TODO(Linh): Support MKL
-set(INSIGHT_BLAS_OPTIONS "OpenBLAS;Atlas;Accelerate")
+set(INSIGHT_BLAS_OPTIONS "OpenBLAS;Atlas;Accelerate;MKL")
 
 function(find_available_blas_options AVAILABLE_BLAS_OPTIONS_RESULT)
   set(AVAILABLE_BLAS_OPTIONS ${INSIGHT_BLAS_OPTIONS})
 
   # MKL
-  # find_package(MKL QUIET)
-  # if (NOT MKL_FOUND)
-  #   list(REMOVE_ITEM AVAILABLE_BLAS_OPTIONS "MKL")
-  # endif()
+  find_package(MKL QUIET)
+  if (NOT MKL_FOUND)
+    list(REMOVE_ITEM AVAILABLE_BLAS_OPTIONS "MKL")
+  endif()
 
   # OpenBLAS
   find_package(OpenBLAS QUIET)
@@ -43,7 +42,12 @@ unset(INSIGHT_BLAS_INCLUDE_DIRS)
 unset(INSIGHT_BLAS_LIBRARIES)
 
 macro(set_insight_blas_library INSIGHT_BLAS_LIBRARY_TO_SET)
-  if ("${INSIGHT_BLAS_LIBRARY_TO_SET}" STREQUAL "OpenBLAS")
+  if ("${INSIGHT_BLAS_LIBRARY_TO_SET}" STREQUAL "MKL")
+    find_package(MKL REQUIRED)
+    set(INSIGHT_BLAS_INCLUDE_DIRS ${MKL_INCLUDE_DIR})
+    set(INSIGHT_BLAS_LIBRARIES ${MKL_LIBRARIES})
+    list(APPEND INSIGHT_COMPILE_OPTIONS INSIGHT_USE_MKL)
+  elseif ("${INSIGHT_BLAS_LIBRARY_TO_SET}" STREQUAL "OpenBLAS")
     # TODO(Linh): Do we reall need to find it again here
     find_package(OpenBLAS REQUIRED)
     set(INSIGHT_BLAS_INCLUDE_DIRS ${OpenBLAS_INCLUDE_DIR})
@@ -80,5 +84,5 @@ macro(set_insight_blas_library INSIGHT_BLAS_LIBRARY_TO_SET)
     message(FATAL_ERROR "Unknown BLAS option: '${INSIGHT_BLAS_LIBRARY_TO_SET}'"
       ". Available BLAS options are: ${_AVAILABLE_BLAS_OPTIONS}")
   endif()
-  message(STATUS " Using BLAS option: ${INSIGHT_BLAS_LIBRARY_TO_SET}")
+  message(STATUS "Using BLAS option: ${INSIGHT_BLAS_LIBRARY_TO_SET}")
 endmacro()

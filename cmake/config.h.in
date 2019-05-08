@@ -8,4 +8,7 @@
 // support.
 @INSIGHT_USE_ACCELERATE@
 
+// If defined, Insight will be compiled with MKL support.
+@INSIGHT_USE_MKL@
+
 #endif  // CONFIG_INSIGHT_INTERNAL_CONFIG_H_
