@@ -2,3 +2,5 @@ build
 GPATH
 GRTAGS
 GTAGS
+.dir-locals.el
+config/
