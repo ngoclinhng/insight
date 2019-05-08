@@ -8,11 +8,11 @@
 #include "insight/internal/config.h"
 
 #if defined(_MSC_VER) && defined(SAPIEN_BUILDING_SHARED_LIBRARY)
-# define SAPIEN_EXPORT __declspec(dllexport)
+# define INSIGHT_EXPORT __declspec(dllexport)
 #elif defined(_MSC_VER) && defined(SAPIEN_USING_SHARED_LIBRARY)
-# define SAPIEN_EXPORT __declspec(dllimport)
+# define INSIGHT_EXPORT __declspec(dllimport)
 #else
-# define SAPIEN_EXPORT
+# define INSIGHT_EXPORT
 #endif
 
 #endif  // INCLUDE_INSIGHT_INTERNAL_PORT_H_
