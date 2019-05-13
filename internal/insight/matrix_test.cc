@@ -124,4 +124,11 @@ TEST(matrix, constructor_from_nested_initializer_list) {
   EXPECT_THAT(contents, ElementsAre(1, 2, 3, 4));
 }
 
+TEST(matrix, element_wise_iterator) {
+  matrix<double> m = {{10, 20, 30}, {40, 50, 60}};
+  std::vector<double> contents(m.begin(), m.end());
+
+  EXPECT_THAT(contents, ElementsAre(10, 20, 30, 40, 50, 60));
+}
+
 }  // namespace insight

@@ -24,6 +24,9 @@ template<typename T>
 class matrix <T, typename std::enable_if<std::is_arithmetic<T>::value>::type >{
  public:
   using size_type = std::size_t;
+  using value_type = T;
+  using reference = T&;
+  using const_reference = const T&;
 
   // Constructs an empty dense matrix.
   matrix() : buffer_(nullptr), num_elem_(0), num_rows_(0), num_cols_(0) {}
@@ -203,6 +206,9 @@ class matrix <T, typename std::enable_if<std::is_arithmetic<T>::value>::type >{
   // Returns the number of columns of the matrix.
   size_type num_cols() const { return num_cols_; }
 
+  // Returns the number of elements in the matrix.
+  size_type size() const { return num_elem_; }
+
   // Returns the shape of the matrix.
   std::pair<size_type, size_type> shape() const {
     return std::pair<size_type, size_type>(num_rows_, num_cols_);
@@ -210,23 +216,37 @@ class matrix <T, typename std::enable_if<std::is_arithmetic<T>::value>::type >{
 
   // Accesses the element at index i in the underlying buffer without
   // bounce-checking. A reference is returned.
-  T& operator[](const size_type i) { return buffer_[i]; }
+  reference operator[](const size_type i) { return buffer_[i]; }
 
   // Accesses the element at index i in the underlying buffer without
   // bounce-checking. A const reference is returned.
-  const T& operator[](const size_type i) const { return buffer_[i]; }
+  const_reference operator[](const size_type i) const { return buffer_[i]; }
 
   // Accesses the element at row `i` and column `j` in the matrix without
   // bounce-checking. A reference is returned.
-  T& operator()(const size_type i, const size_type j) {
+  reference operator()(const size_type i, const size_type j) {
     return buffer_[i * num_cols_ + j];
   }
 
   // Accesses the element at row `i` and column `j` in the matrix without
   // bounce-checking. A const reference is returned.
-  const T& operator()(const size_type i, const size_type j) const {
+  const_reference operator()(const size_type i, const size_type j) const {
     return buffer_[i * num_cols_ + j];
   }
+
+  // Element-wise iterator
+  // ----------------------------------------------------------------------
+
+  using iterator = T*;
+  using const_iterator = const T*;
+
+  iterator begin() { return buffer_; }
+  const_iterator begin() const { return buffer_; }
+  const_iterator cbegin() const { return buffer_; }
+
+  iterator end() { return buffer_ + num_elem_; }
+  const_iterator end() const { return buffer_ + num_elem_; }
+  const_iterator cend() const { return buffer_ + num_elem_; }
 
  private:
   T* buffer_;
