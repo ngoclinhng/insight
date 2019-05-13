@@ -2,8 +2,8 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_INTERNAL_MEMORY_H_
-#define INCLUDE_INSIGHT_INTERNAL_MEMORY_H_
+#ifndef INTERNAL_INSIGHT_MEMORY_H_
+#define INTERNAL_INSIGHT_MEMORY_H_
 
 #include <cstdlib>
 
@@ -70,4 +70,4 @@ inline void insight_free(T* ptr) {
 }  // namespace internal
 }  // namespace insight
 
-#endif  // INCLUDE_INSIGHT_INTERNAL_MEMORY_H_
+#endif  // INTERNAL_INSIGHT_MEMORY_H_

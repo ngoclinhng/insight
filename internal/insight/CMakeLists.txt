@@ -16,6 +16,7 @@
 # List all internal source files. Do NOT use file(GLOB *) to find source!
 set(INSIGHT_SOURCE_FILES
   math_functions.cc
+  matrix.cc
 )
 
 # Also depends on the internal header files so that they appear in IDES.
