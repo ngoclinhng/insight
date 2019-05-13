@@ -146,6 +146,31 @@ if (UNIX)
     "${CMAKE_CXX_FLAGS} -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-missing-field-initializers")
 endif (UNIX)
 
+# Alternative to malloc.
+# -------------------------------------------------------------------------
+
+include(InsightFindAlternativesToMalloc)
+insight_find_alternatives_to_malloc(INSIGHT_ALTERNATIVES_TO_MALLOC_LIST)
+
+if (INSIGHT_ALTERNATIVES_TO_MALLOC_LIST)
+  pretty_print_cmake_list(PRETTY_INSIGHT_ALTERNATIVES_TO_MALLOC_LIST
+    ${INSIGHT_ALTERNATIVES_TO_MALLOC_LIST})
+  message(STATUS "Found alternatives to malloc: ${PRETTY_INSIGHT_ALTERNATIVES_TO_MALLOC_LIST}")
+
+  set(INSIGHT_MALLOC_OPTION "${INSIGHT_MALLOC_OPTION}" CACHE STRING
+    "Alternative to C malloc" FORCE)
+
+  # There is no need to check for validity of INSIGHT_MALLOC_OPTION which was
+  # specified via -DINSIGHT_MALLOC_OPTION here becuase we've already done
+  # that in set_insight_malloc_option macro (see below).
+  if (NOT INSIGHT_MALLOC_OPTION)
+    # Defaults to the first item in the list of available options.
+    list(GET INSIGHT_ALTERNATIVES_TO_MALLOC_LIST 0 DEFAULT_MALLOC_OPTION)
+    update_cache_variable(INSIGHT_MALLOC_OPTION ${DEFAULT_MALLOC_OPTION})
+  endif()
+  set_insight_malloc_option("${INSIGHT_MALLOC_OPTION}")
+endif()
+
 # Configre the Insight config.h compile options header using the current
 # compile options and put the configured header into the Insight build
 # directory.

@@ -11,4 +11,16 @@
 // If defined, Insight will be compiled with MKL support.
 @INSIGHT_USE_MKL@
 
+// If defined, Insight will use TBB scalable_malloc in replacement for
+// standard malloc.
+@INSIGHT_USE_TBB_SCALABLE_MALLOC@
+
+// If defined, Insight will use mkl_malloc in replacement for standard
+// malloc.
+@INSIGHT_USE_MKL_MALLOC@
+
+// If defined, Insight will use posix_memalign in replacement for standard
+// malloc.
+@INSIGHT_USE_POSIX_MEMALIGN@
+
 #endif  // CONFIG_INSIGHT_INTERNAL_CONFIG_H_
