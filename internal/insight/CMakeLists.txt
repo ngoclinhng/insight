@@ -16,7 +16,6 @@
 # List all internal source files. Do NOT use file(GLOB *) to find source!
 set(INSIGHT_SOURCE_FILES
   math_functions.cc
-  matrix.cc
 )
 
 # Also depends on the internal header files so that they appear in IDES.
@@ -27,7 +26,8 @@ file(GLOB INSIGHT_INTERNAL_HEADER_FILES
 
 # Depend also on public headers so they appear in IDEs.
 file(GLOB INSIGHT_PUBLIC_HEADER_FILES
-  ${Insight_SOURCE_DIR}/include/insight/*.h)
+  ${Insight_SOURCE_DIR}/include/insight/*.h
+  ${Insight_SOURCE_DIR}/include/insight/linalg/*.h)
 file(GLOB INSIGHT_PUBLIC_INTERNAL_HEADER_FILES
   ${Insight_SOURCE_DIR}/include/insight/internal/*.h)
 
@@ -175,6 +175,8 @@ if (BUILD_TESTING)
 	     ${Insight_SOURCE_DIR}/data)
   endmacro (INSIGHT_TEST)
 
+  insight_test(memory)
   insight_test(math_functions)
   insight_test(matrix)
+  insight_test(fmatrix)
 endif (BUILD_TESTING)

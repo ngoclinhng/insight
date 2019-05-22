@@ -197,6 +197,12 @@ file(GLOB INSIGHT_PUBLIC_INTERNAL_HEADER_FILES
 install(FILES ${INSIGHT_PUBLIC_INTERNAL_HEADER_FILES}
   DESTINATION include/insight/internal)
 
+# Install linalg headers.
+file(GLOB INSIGHT_PUBLIC_LINALG_HEADERS
+  ${Insight_SOURCE_DIR}/include/insight/linalg/*.h)
+install(FILES ${INSIGHT_PUBLIC_LINALG_HEADERS}
+  DESTINATION include/insight/linalg)
+
 # Also setup installation of Insight config.h configured with the current
 # build options into the installed headers directory.
 install(FILES ${Insight_BINARY_DIR}/config/insight/internal/config.h
