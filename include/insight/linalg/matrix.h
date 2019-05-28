@@ -288,37 +288,37 @@ class matrix: private internal::storage<T, Allocator> {
   // constructs a `1` by `n` matrix from a given row_view where `n` is
   // the size of the row_view `view`.
 
-  class row_view;
+  // class row_view;
 
-  matrix(const row_view& view,
-         const allocator_type& alloc = insight_allocator<T>())  // NOLINT
-      : buffer(view.size(), alloc),
-        num_rows_(1),
-        num_cols_(view.size()) {
-    std::uninitialized_copy_n(view.begin(), view.size(), buffer::start);
-  }
+  // matrix(const row_view& view,
+  //        const allocator_type& alloc = insight_allocator<T>())  // NOLINT
+  //     : buffer(view.size(), alloc),
+  //       num_rows_(1),
+  //       num_cols_(view.size()) {
+  //   std::uninitialized_copy_n(view.begin(), view.size(), buffer::start);
+  // }
 
-  self_type& operator=(const row_view& view) {
-    if (capacity() < view.size()) {
-      self_type temp(view);
-      temp.swap(*this);
-      return *this;
-    }
+  // self_type& operator=(const row_view& view) {
+  //   if (capacity() < view.size()) {
+  //     self_type temp(view);
+  //     temp.swap(*this);
+  //     return *this;
+  //   }
 
-    if (view.has_backing_matrix(*this) && (view.begin() == begin())) {
-      // Destroy surplus elements.
-      pointer p = buffer::start + view.size();
-      while (p != buffer::end) { p->~value_type(); ++p; }
-    } else {
-      copy_data(view.begin(), view.size());
-    }
+  //   if (view.has_backing_matrix(*this) && (view.begin() == begin())) {
+  //     // Destroy surplus elements.
+  //     pointer p = buffer::start + view.size();
+  //     while (p != buffer::end) { p->~value_type(); ++p; }
+  //   } else {
+  //     copy_data(view.begin(), view.size());
+  //   }
 
-    buffer::end = buffer::start + view.size();
-    num_rows_ = 1;
-    num_cols_ = view.size();
+  //   buffer::end = buffer::start + view.size();
+  //   num_rows_ = 1;
+  //   num_cols_ = view.size();
 
-    return *this;
-  }
+  //   return *this;
+  // }
 
   // Return the number of rows in `this` matrix.
   size_type num_rows() const { return num_rows_; }

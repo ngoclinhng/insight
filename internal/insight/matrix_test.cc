@@ -193,42 +193,6 @@ TEST(matrix, row_at) {
   EXPECT_THAT(m, ElementsAre(100, 2, 3, 4, 5, 6));
 }
 
-TEST(matrix, constructor_from_row_view) {
-  matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
-  matrix<double> m1 = m.row_at(0);
-
-  ASSERT_FALSE(m1.empty());
-  ASSERT_EQ(m1.num_rows(), 1);
-  ASSERT_EQ(m1.num_cols(), 3);
-  ASSERT_EQ(m1.shape().first, 1);
-  ASSERT_EQ(m1.shape().second, 3);
-  ASSERT_EQ(m1.size(), 3);
-  ASSERT_EQ(m1.capacity(), 3);
-  EXPECT_THAT(m1, ElementsAre(1, 2, 3));
-
-  m = m.row_at(0);
-
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 1);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 1);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 3);
-  ASSERT_EQ(m.capacity(), 6);
-  EXPECT_THAT(m, ElementsAre(1, 2, 3));
-
-  matrix<double> m2 = {{1, 2, 3}, {4, 5, 6}};
-  m2 = m2.row_at(1);
-
-  ASSERT_FALSE(m2.empty());
-  ASSERT_EQ(m2.num_rows(), 1);
-  ASSERT_EQ(m2.num_cols(), 3);
-  ASSERT_EQ(m2.shape().first, 1);
-  ASSERT_EQ(m2.shape().second, 3);
-  ASSERT_EQ(m2.size(), 3);
-  ASSERT_EQ(m2.capacity(), 6);
-  EXPECT_THAT(m2, ElementsAre(4, 5, 6));
-}
 
 TEST(matrix, operator_plus_equal_scalar) {
   matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
