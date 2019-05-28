@@ -3,6 +3,7 @@
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
 #include "insight/linalg/matrix.h"
+// #include "insight/linalg/evaluate.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -10,6 +11,7 @@
 namespace insight {
 
 using ::testing::ElementsAre;
+using ::testing::DoubleEq;
 
 TEST(matrix, default_constructor) {
   matrix<double> m;
@@ -189,6 +191,91 @@ TEST(matrix, row_at) {
   first_row[0] = 100;
 
   EXPECT_THAT(m, ElementsAre(100, 2, 3, 4, 5, 6));
+}
+
+TEST(matrix, constructor_from_row_view) {
+  matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
+  matrix<double> m1 = m.row_at(0);
+
+  ASSERT_FALSE(m1.empty());
+  ASSERT_EQ(m1.num_rows(), 1);
+  ASSERT_EQ(m1.num_cols(), 3);
+  ASSERT_EQ(m1.shape().first, 1);
+  ASSERT_EQ(m1.shape().second, 3);
+  ASSERT_EQ(m1.size(), 3);
+  ASSERT_EQ(m1.capacity(), 3);
+  EXPECT_THAT(m1, ElementsAre(1, 2, 3));
+
+  m = m.row_at(0);
+
+  ASSERT_FALSE(m.empty());
+  ASSERT_EQ(m.num_rows(), 1);
+  ASSERT_EQ(m.num_cols(), 3);
+  ASSERT_EQ(m.shape().first, 1);
+  ASSERT_EQ(m.shape().second, 3);
+  ASSERT_EQ(m.size(), 3);
+  ASSERT_EQ(m.capacity(), 6);
+  EXPECT_THAT(m, ElementsAre(1, 2, 3));
+
+  matrix<double> m2 = {{1, 2, 3}, {4, 5, 6}};
+  m2 = m2.row_at(1);
+
+  ASSERT_FALSE(m2.empty());
+  ASSERT_EQ(m2.num_rows(), 1);
+  ASSERT_EQ(m2.num_cols(), 3);
+  ASSERT_EQ(m2.shape().first, 1);
+  ASSERT_EQ(m2.shape().second, 3);
+  ASSERT_EQ(m2.size(), 3);
+  ASSERT_EQ(m2.capacity(), 6);
+  EXPECT_THAT(m2, ElementsAre(4, 5, 6));
+}
+
+TEST(matrix, operator_plus_equal_scalar) {
+  matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
+  m += 10.0;
+
+  ASSERT_FALSE(m.empty());
+  ASSERT_EQ(m.num_rows(), 2);
+  ASSERT_EQ(m.num_cols(), 3);
+  ASSERT_EQ(m.shape().first, 2);
+  ASSERT_EQ(m.shape().second, 3);
+  ASSERT_EQ(m.size(), 6);
+  ASSERT_EQ(m.capacity(), 6);
+  EXPECT_THAT(m, ElementsAre(11, 12, 13, 14, 15, 16));
+
+  m.row_at(0) += 5.0;
+
+  ASSERT_FALSE(m.empty());
+  ASSERT_EQ(m.num_rows(), 2);
+  ASSERT_EQ(m.num_cols(), 3);
+  ASSERT_EQ(m.shape().first, 2);
+  ASSERT_EQ(m.shape().second, 3);
+  ASSERT_EQ(m.size(), 6);
+  ASSERT_EQ(m.capacity(), 6);
+  EXPECT_THAT(m, ElementsAre(16, 17, 18, 14, 15, 16));
+
+  matrix<int> m1 = {{1, 2, 3}, {4, 5, 6}};
+  m1 += 10;
+
+  ASSERT_FALSE(m1.empty());
+  ASSERT_EQ(m1.num_rows(), 2);
+  ASSERT_EQ(m1.num_cols(), 3);
+  ASSERT_EQ(m1.shape().first, 2);
+  ASSERT_EQ(m1.shape().second, 3);
+  ASSERT_EQ(m1.size(), 6);
+  ASSERT_EQ(m1.capacity(), 6);
+  EXPECT_THAT(m1, ElementsAre(11, 12, 13, 14, 15, 16));
+
+  m1.row_at(1) += 5.0;
+
+  ASSERT_FALSE(m1.empty());
+  ASSERT_EQ(m1.num_rows(), 2);
+  ASSERT_EQ(m1.num_cols(), 3);
+  ASSERT_EQ(m1.shape().first, 2);
+  ASSERT_EQ(m1.shape().second, 3);
+  ASSERT_EQ(m1.size(), 6);
+  ASSERT_EQ(m1.capacity(), 6);
+  EXPECT_THAT(m1, ElementsAre(11, 12, 13, 19, 20, 21));
 }
 
 }  // namespace insight

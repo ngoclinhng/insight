@@ -27,7 +27,8 @@ file(GLOB INSIGHT_INTERNAL_HEADER_FILES
 # Depend also on public headers so they appear in IDEs.
 file(GLOB INSIGHT_PUBLIC_HEADER_FILES
   ${Insight_SOURCE_DIR}/include/insight/*.h
-  ${Insight_SOURCE_DIR}/include/insight/linalg/*.h)
+  ${Insight_SOURCE_DIR}/include/insight/linalg/*.h
+  ${Insight_SOURCE_DIR}/include/insight/linalg/type_traits/*.h)
 file(GLOB INSIGHT_PUBLIC_INTERNAL_HEADER_FILES
   ${Insight_SOURCE_DIR}/include/insight/internal/*.h)
 
@@ -178,5 +179,5 @@ if (BUILD_TESTING)
   insight_test(memory)
   insight_test(math_functions)
   insight_test(matrix)
-  insight_test(fmatrix)
+  insight_test(vector)
 endif (BUILD_TESTING)

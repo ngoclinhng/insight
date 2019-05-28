@@ -15,17 +15,13 @@
 
 #include "insight/internal/storage.h"
 #include "insight/internal/math_functions.h"
-#include "insight/linalg/support_arithmetic.h"
-#include "insight/linalg/operator_times.h"
 
 #include "glog/logging.h"
 
 namespace insight {
 
 template<typename T, typename Allocator = insight_allocator<T> >
-class matrix:
-      public support_arithmetic<T, matrix<T, Allocator> >::type,
-      private internal::storage<T, Allocator> {
+class matrix: private internal::storage<T, Allocator> {
   using self_type = matrix<T, Allocator>;
   using buffer = internal::storage<T, Allocator>;
 
@@ -289,6 +285,41 @@ class matrix:
     return *this;
   }
 
+  // constructs a `1` by `n` matrix from a given row_view where `n` is
+  // the size of the row_view `view`.
+
+  class row_view;
+
+  matrix(const row_view& view,
+         const allocator_type& alloc = insight_allocator<T>())  // NOLINT
+      : buffer(view.size(), alloc),
+        num_rows_(1),
+        num_cols_(view.size()) {
+    std::uninitialized_copy_n(view.begin(), view.size(), buffer::start);
+  }
+
+  self_type& operator=(const row_view& view) {
+    if (capacity() < view.size()) {
+      self_type temp(view);
+      temp.swap(*this);
+      return *this;
+    }
+
+    if (view.has_backing_matrix(*this) && (view.begin() == begin())) {
+      // Destroy surplus elements.
+      pointer p = buffer::start + view.size();
+      while (p != buffer::end) { p->~value_type(); ++p; }
+    } else {
+      copy_data(view.begin(), view.size());
+    }
+
+    buffer::end = buffer::start + view.size();
+    num_rows_ = 1;
+    num_cols_ = view.size();
+
+    return *this;
+  }
+
   // Return the number of rows in `this` matrix.
   size_type num_rows() const { return num_rows_; }
 
@@ -359,25 +390,26 @@ class matrix:
   // row view
   // ==================================================================
 
-  class row_view: public support_arithmetic<T, row_view>::type {
-    using base_type = matrix<T, Allocator>;
+  class row_view {
+    using matrix_type = matrix<T, Allocator>;
+    using self_type = row_view;
 
    public:
-    using value_type = typename base_type::value_type;
-    using size_type = typename base_type::size_type;
-    using difference_type = typename base_type::difference_type;
+    using value_type = typename matrix_type::value_type;
+    using size_type = typename matrix_type::size_type;
+    using difference_type = typename matrix_type::difference_type;
     using reference = value_type&;
     using const_reference = const value_type&;
-    using pointer = typename base_type::pointer;
-    using const_pointer = typename base_type::const_pointer;
+    using pointer = typename matrix_type::pointer;
+    using const_pointer = typename matrix_type::const_pointer;
 
-    using shape_type = typename base_type::shape_type;
+    using shape_type = typename matrix_type::shape_type;
 
     row_view() = default;
     ~row_view() = default;
 
-    row_view(base_type* base, size_type index)
-        : base_(base),
+    row_view(matrix_type* base, size_type index)
+        : backing_matrix_(base),
           row_start_(base->begin() + index * base->num_cols()),
           row_end_(base->begin() + (index + 1) * base->num_cols()) {
       CHECK_LT(index, base->num_rows()) << "row_view: invalid row index";
@@ -385,7 +417,7 @@ class matrix:
 
     size_type num_rows() const { return 1; }
 
-    size_type num_cols() const { return base_->num_cols(); }
+    size_type num_cols() const { return backing_matrix_->num_cols(); }
 
     shape_type shape() const {
       return shape_type(1, num_cols());
@@ -416,15 +448,50 @@ class matrix:
     const_iterator end() const { return row_end_; }
     const_iterator cend() const { return row_end_; }
 
-    bool aliased_of(const row_view& other) const {
-      return (this == &other) || (row_start_ == other.row_start_);
+    bool has_backing_matrix(const matrix_type& base) const {
+      return (backing_matrix_ == &base);
     }
-    bool aliased_of(const base_type& base) const {
-      return (base_ == &base);
+
+    // row-scalar arithmetic.
+
+    // Increments each and every element in the row by the constant
+    // `scalar`.
+    inline self_type& operator+=(value_type scalar) {
+      std::for_each(begin(), end(), [&](reference e) { e += scalar; });
+      return *this;
+    }
+
+    // Decrements each and every element in the row by the constant
+    // `scalar`.
+    inline self_type& operator-=(value_type scalar) {
+      std::for_each(begin(), end(), [&](reference e) { e -= scalar; });
+      return *this;
+    }
+
+    // Replaces each and every element in the row by the result of
+    // multiplication of that element and a `scalar`.
+    inline self_type& operator*=(value_type scalar) {
+      if (std::is_floating_point<T>::value) {
+        internal::insight_scal(size(), scalar, begin());
+      } else {
+        std::for_each(begin(), end(), [&](reference e) { e *= scalar; });
+      }
+      return *this;
+    }
+
+    // Replaces each and every element in the row by the result of
+    // dividing that element by a constant `scalar`.
+    inline self_type& operator/=(value_type scalar) {
+      if (std::is_floating_point<T>::value) {
+        internal::insight_scal(size(), value_type(1.0) / scalar, begin());
+      } else {
+        std::for_each(begin(), end(), [&](reference e) { e /= scalar; });
+      }
+      return *this;
     }
 
    private:
-    base_type* base_;
+    matrix_type* backing_matrix_;
     pointer row_start_;
     pointer row_end_;
   };
@@ -434,10 +501,112 @@ class matrix:
     return row_view(this, row_index);
   }
 
-  // Returns true if `this` and `other` are indeed the same matrix.
-  bool aliased_of(const matrix& other) const { return (this == &other); }
-  bool aliased_of(const row_view& view) const {
-    return view.aliased_of(*this);
+  // matrix-scalar arithmetic.
+
+  // Increments each and every element in the matrix by the constant
+  // `scalar`.
+  inline self_type& operator+=(value_type scalar) {
+    std::for_each(begin(), end(), [&](reference e) { e += scalar; });
+    return *this;
+  }
+
+  // Decrements each and every element in the matrix by the constant
+  // `scalar`.
+  inline self_type& operator-=(value_type scalar) {
+    std::for_each(begin(), end(), [&](reference e) { e -= scalar; });
+    return *this;
+  }
+
+  // Replaces each and every element in the matrix by the result of
+  // multiplication of that element and a `scalar`.
+  inline self_type& operator*=(value_type scalar) {
+    if (std::is_floating_point<T>::value) {
+      internal::insight_scal(size(), scalar, begin());
+    } else {
+      std::for_each(begin(), end(), [&](reference e) { e *= scalar; });
+    }
+    return *this;
+  }
+
+  // Replaces each and every element in the matrix by the result of
+  // dividing that element by a constant `scalar`.
+  inline self_type& operator/=(value_type scalar) {
+    if (std::is_floating_point<T>::value) {
+      internal::insight_scal(size(), value_type(1.0) / scalar, begin());
+    } else {
+      std::for_each(begin(), end(), [&](reference e) { e /= scalar; });
+    }
+    return *this;
+  }
+
+  // matrix-matrix arithmetic.
+
+  // Replaces each and every element in `this` matrix by the result of
+  // adding that element with the corresponfing element in the `other`
+  // matrix.
+  inline self_type& operator+=(const matrix& other) {
+    // TODO(Linh): What happens if `this == &other`? Do we need to treat
+    // this case separately by multiplying `this` by `2` for example?
+    CHECK_EQ(num_rows(), other.num_rows());
+    CHECK_EQ(num_cols(), other.num_cols());
+    if (std::is_floating_point<T>::value) {
+      internal::insight_add(size(), other.begin(), begin(), begin());
+    } else {
+      auto it = other.begin();
+      std::for_each(begin(), end(), [&](reference e) { e += *it++; });
+    }
+    return *this;
+  }
+
+  // Replaces each and every element in `this` matrix by the result of
+  // substracting the corresponding element in the `other` matrix from that
+  // element.
+  inline self_type& operator-=(const matrix& other) {
+    // TODO(Linh): What happens if `this == &other`? Do we need to treat
+    // this case separately by setting all elements of `this` to `zero`?
+    CHECK_EQ(num_rows(), other.num_rows());
+    CHECK_EQ(num_cols(), other.num_cols());
+    if (std::is_floating_point<T>::value) {
+      internal::insight_sub(size(), begin(), other.begin(), begin());
+    } else {
+      auto it = other.begin();
+      std::for_each(begin(), end(), [&](reference e) { e -= *it++; });
+    }
+    return *this;
+  }
+
+  // Replaces each and every element in `this` matrix by the result of
+  // multiplying that element and the corresponding element in the
+  // `other` matrix.
+  inline self_type& operator*=(const matrix& other) {
+    // TODO(Linh): What happens if `this == &other`? Do we need to treat
+    // this case separately?
+    CHECK_EQ(num_rows(), other.num_rows());
+    CHECK_EQ(num_cols(), other.num_cols());
+    if (std::is_floating_point<T>::value) {
+      internal::insight_mul(size(), other.begin(), begin(), begin());
+    } else {
+      auto it = other.begin();
+      std::for_each(begin(), end(), [&](reference e) { e *= *it++; });
+    }
+    return *this;
+  }
+
+  // Replaces each and every element in `this` matrix by the result of
+  // dividing that element by the corresponding element in the `other`
+  // matrix.
+  inline self_type& operator/=(const matrix& other) {
+    // TODO(Linh): What happens if `this == &other`? Do we need to treat
+    // this case separately by setting all elements of `this` to `one`?
+    CHECK_EQ(num_rows(), other.num_rows());
+    CHECK_EQ(num_cols(), other.num_cols());
+    if (std::is_floating_point<T>::value) {
+      internal::insight_div(size(), begin(), other.begin(), begin());
+    } else {
+      auto it = other.begin();
+      std::for_each(begin(), end(), [&](reference e) { e /= *it++; });
+    }
+    return *this;
   }
 
  private:

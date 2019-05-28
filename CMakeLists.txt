@@ -202,6 +202,10 @@ file(GLOB INSIGHT_PUBLIC_LINALG_HEADERS
   ${Insight_SOURCE_DIR}/include/insight/linalg/*.h)
 install(FILES ${INSIGHT_PUBLIC_LINALG_HEADERS}
   DESTINATION include/insight/linalg)
+file(GLOB INSIGHT_PUBLIC_LINALG_TYPE_TRAITS_HEADERS
+  ${Insight_SOURCE_DIR}/include/insight/linalg/type_traits/*.h)
+install(FILES ${INSIGHT_PUBLIC_LINALG_TYPE_TRAITS_HEADERS}
+  DESTINATION include/insight/linalg/type_traits)
 
 # Also setup installation of Insight config.h configured with the current
 # build options into the installed headers directory.
