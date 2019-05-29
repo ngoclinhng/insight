@@ -242,4 +242,52 @@ TEST(matrix, operator_plus_equal_scalar) {
   EXPECT_THAT(m1, ElementsAre(11, 12, 13, 19, 20, 21));
 }
 
+TEST(matrix, operator_minus_equal_scalar) {
+  matrix<double> m = {{10, 20, 30}, {40, 50, 60}};
+  m -= 10.0;
+
+  ASSERT_FALSE(m.empty());
+  ASSERT_EQ(m.num_rows(), 2);
+  ASSERT_EQ(m.num_cols(), 3);
+  ASSERT_EQ(m.shape().first, 2);
+  ASSERT_EQ(m.shape().second, 3);
+  ASSERT_EQ(m.size(), 6);
+  ASSERT_EQ(m.capacity(), 6);
+  EXPECT_THAT(m, ElementsAre(0, 10, 20, 30, 40, 50));
+
+  m.row_at(0) -= 1.0;
+
+  ASSERT_FALSE(m.empty());
+  ASSERT_EQ(m.num_rows(), 2);
+  ASSERT_EQ(m.num_cols(), 3);
+  ASSERT_EQ(m.shape().first, 2);
+  ASSERT_EQ(m.shape().second, 3);
+  ASSERT_EQ(m.size(), 6);
+  ASSERT_EQ(m.capacity(), 6);
+  EXPECT_THAT(m, ElementsAre(-1, 9, 19, 30, 40, 50));
+
+  matrix<int> m1 = {{1, 2, 3}, {4, 5, 6}};
+  m1 -= 10;
+
+  ASSERT_FALSE(m1.empty());
+  ASSERT_EQ(m1.num_rows(), 2);
+  ASSERT_EQ(m1.num_cols(), 3);
+  ASSERT_EQ(m1.shape().first, 2);
+  ASSERT_EQ(m1.shape().second, 3);
+  ASSERT_EQ(m1.size(), 6);
+  ASSERT_EQ(m1.capacity(), 6);
+  EXPECT_THAT(m1, ElementsAre(-9, -8, -7, -6, -5, -4));
+
+  m1.row_at(1) -= 5.0;
+
+  ASSERT_FALSE(m1.empty());
+  ASSERT_EQ(m1.num_rows(), 2);
+  ASSERT_EQ(m1.num_cols(), 3);
+  ASSERT_EQ(m1.shape().first, 2);
+  ASSERT_EQ(m1.shape().second, 3);
+  ASSERT_EQ(m1.size(), 6);
+  ASSERT_EQ(m1.capacity(), 6);
+  EXPECT_THAT(m1, ElementsAre(-9, -8, -7, -11, -10, -9));
+}
+
 }  // namespace insight
