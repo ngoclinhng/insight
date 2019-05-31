@@ -9,6 +9,8 @@
 #include <iterator>
 #include <type_traits>
 
+#include "insight/linalg/functional.h"
+
 #include "glog/logging.h"
 
 
@@ -351,6 +353,108 @@ struct vector_binary<typename E::value_type, E, F>
   inline const_iterator cend() const  {return end(); }
 };
 
+// Unary expression.
+
+template<typename E, typename F>
+struct vector_unary: public vector_expression<vector_unary<E, F> > {
+  // public types.
+  using value_type = typename E::value_type;
+  using size_type = typename E::size_type;
+  using difference_type = typename E::difference_type;
+  using const_reference = typename E::const_reference;
+  using reference = const_reference;
+  using const_pointer = typename E::const_pointer;
+  using pointer = const_pointer;
+  using shape_type = typename E::shape_type;
+  using functor_type = F;
+
+
+  const E& e;
+  const F& f;
+
+  vector_unary(const E& e, const F& f) : e(e), f(f) {}
+
+  inline size_type num_rows() const { return e.num_rows(); }
+  inline size_type num_cols() const { return e.num_cols(); }
+  inline shape_type shape() const { return e.shape(); }
+  inline size_type size() const { return e.size(); }
+
+  // Iterator.
+
+  class const_iterator;
+  using iterator = const_iterator;
+
+  class const_iterator {
+   private:
+    using const_subiterator_type = typename E::const_iterator;
+
+   public:
+    // public types.
+    using value_type = typename vector_unary::value_type;
+    using difference_type = typename vector_unary::difference_type;
+    using pointer = typename vector_unary::const_pointer;
+    using reference = typename vector_unary::const_reference;
+    using iterator_category = std::input_iterator_tag;
+
+    const_iterator() : index_(), expr_(), it_() {}
+
+    const_iterator(const vector_unary& expr, size_type index)
+        : expr_(expr), index_(index), it_(expr.e.begin()) {}
+
+    // Copy constructor.
+    const_iterator(const const_iterator& it)
+        : expr_(it.expr_), index_(it.index_), it_(it.it_) {}
+
+    // Assignment operator.
+    const_iterator& operator=(const const_iterator& it) {
+      if (this == &it) { return *this; }
+      expr_ = it.expr_;
+      index_ = it.index_;
+      it_ = it.it_;
+      return *this;
+    }
+
+    // Dereference.
+    inline value_type operator*() const {
+      return expr_.f(*it_);
+    }
+
+    // Comparison.
+
+    inline bool operator==(const const_iterator& it) {
+      return (index_ == it.index_);
+    }
+
+    inline bool operator!=(const const_iterator& it) {
+      return !(*this == it);
+    }
+
+    // Prefix increment ++it.
+    inline const_iterator& operator++() {
+      ++index_;
+      ++it_;
+      return *this;
+    }
+
+    // Postfix increment it++.
+    inline const_iterator operator++(int) {
+      const_iterator temp(*this);
+      ++(*this);
+      return temp;
+    }
+
+   private:
+    const vector_unary& expr_;
+    size_type index_;
+    const_subiterator_type it_;
+  };
+
+  inline const_iterator begin() const { return const_iterator(*this, 0); }
+  inline const_iterator cbegin() const { return begin(); }
+  inline const_iterator end() const { return const_iterator(*this, size()); }
+  inline const_iterator cend() const  {return end(); }
+};
+
 // overload operators.
 
 // Addition between two generic vector expressions.
@@ -532,5 +636,37 @@ operator/(typename E::value_type scalar, const vector_expression<E>& e) {
     >(scalar, e.self(), std::divides<typename E::value_type>());
 }
 
+// Unary functions.
+// TODO(Linh): should these be in here?
+
+template<typename E>
+inline
+vector_unary<E, unary_functor::sqrt<typename E::value_type> >
+sqrt(const vector_expression<E>& e) {
+  return vector_unary<
+    E,
+    unary_functor::sqrt<typename E::value_type>
+    >(e.self(), unary_functor::sqrt<typename E::value_type>());
+}
+
+template<typename E>
+inline
+vector_unary<E, unary_functor::exp<typename E::value_type> >
+exp(const vector_expression<E>& e) {
+  return vector_unary<
+    E,
+    unary_functor::exp<typename E::value_type>
+    >(e.self(), unary_functor::exp<typename E::value_type>());
+}
+
+template<typename E>
+inline
+vector_unary<E, unary_functor::log<typename E::value_type> >
+log(const vector_expression<E>& e) {
+  return vector_unary<
+    E,
+    unary_functor::log<typename E::value_type>
+    >(e.self(), unary_functor::log<typename E::value_type>());
+}
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_VECTOR_EXPRESSION_H_

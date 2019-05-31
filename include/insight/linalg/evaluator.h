@@ -18,8 +18,9 @@ template<typename E, typename Enable = void> struct evaluator;
 template<typename E>
 struct evaluator<
   vector_expression<E>,
-  typename std::enable_if<!is_special_vector_expression<E>::value,
-                          void>::type> {
+  typename
+  std::enable_if<!is_special_vector_expression<vector_expression<E>>::value,
+                 void>::type> {
   using value_type = typename E::value_type;
 
   inline static void assign(const E& expr, value_type* buffer) {
@@ -139,6 +140,10 @@ struct evaluator<vector_expression<E>,
   using functor_type = typename E::functor_type;
 
   // z = x ? y.
+  //
+  // TODO(Linh): This is NOT scalable! Consider doing something like
+  // this:
+  //  binary_functor_traits<functor_type>::apply(expr, buffer);
   inline static void assign(const E& expr, value_type* buffer) {
     if (std::is_same<functor_type, std::plus<value_type> >::value) {
       internal::insight_add(expr.size(), expr.e1.begin(), expr.e2.begin(),
@@ -179,6 +184,54 @@ struct evaluator<vector_expression<E>,
   }
 
   // z /= x ? y.
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+
+template<typename E>
+struct evaluator<vector_expression<E>,
+                 typename std::enable_if<is_unary_functor_of_fd<E>::value,
+                                         void>::type> {
+  using value_type = typename E::value_type;
+  using functor_type = typename E::functor_type;
+
+  // TODO(Linh): This is NOT scalable! Consider doing something like
+  // this:
+  //  unary_functor_traits<functor_type>::apply(expr, buffer);
+  inline static void assign(const E& expr, value_type* buffer) {
+    if (std::is_same<functor_type,
+        unary_functor::sqrt<value_type> >::value) {
+      internal::insight_sqrt(expr.e.size(), expr.e.begin(), buffer);
+    } else if (std::is_same<functor_type,
+               unary_functor::exp<value_type> >::value) {
+      internal::insight_exp(expr.e.size(), expr.e.begin(), buffer);
+    } else if (std::is_same<functor_type,
+               unary_functor::log<value_type> >::value) {
+      internal::insight_log(expr.e.size(), expr.e.begin(), buffer);
+    } else {
+      // Fallback to default.
+      std::copy(expr.begin(), expr.end(), buffer);
+    }
+  }
+
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
   inline static void div(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });

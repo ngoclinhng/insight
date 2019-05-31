@@ -8,6 +8,7 @@
 #include "insight/linalg/type_traits/is_fd_times_scalar.h"
 #include "insight/linalg/type_traits/is_fd_div_scalar.h"
 #include "insight/linalg/type_traits/is_fd_elemwise_op_fd.h"
+#include "insight/linalg/type_traits/is_unary_functor_of_fd.h"
 
 namespace insight {
 
@@ -28,14 +29,14 @@ template<typename E>
 struct is_special_vector_expression<volatile E>
     : public is_special_vector_expression<E>{};
 
-template<typename E1, typename E2, typename F>
-struct is_special_vector_expression<vector_binary<E1, E2, F> >
-    : public std::conditional<
-  is_fd_times_scalar<vector_binary<E1, E2, F> >::value ||
-  is_fd_div_scalar<vector_binary<E1, E2, F> >::value ||
-  is_fd_elemwise_op_fd<vector_binary<E1, E2, F> >::value,
-  std::true_type,
-  std::false_type>::type{};
+template<typename E>
+struct is_special_vector_expression< vector_expression<E> >
+    : public std::conditional<is_fd_times_scalar<E>::value ||
+                              is_fd_div_scalar<E>::value ||
+                              is_fd_elemwise_op_fd<E>::value ||
+                              is_unary_functor_of_fd<E>::value,
+                              std::true_type,
+                              std::false_type>::type{};
 
 
 }  // namespace insight
