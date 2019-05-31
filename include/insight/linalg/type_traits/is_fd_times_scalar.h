@@ -5,13 +5,12 @@
 #ifndef INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_FD_TIMES_SCALAR_H_
 #define INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_FD_TIMES_SCALAR_H_
 
-#include "insight/linalg/matrix_expression.h"
-#include "insight/linalg/matrix.h"
+#include "insight/linalg/vector_expression.h"
 
 namespace insight {
 
-// Is a particular binary matrix expression a multiplication between a
-// floating-point, dense matrix and a floating-point scalar.
+// Is a particular binary expression a multiplication between a
+// floating-point, dense matrix/vector and a floating-point scalar.
 
 template<typename E> struct is_fd_times_scalar : public std::false_type{};
 
@@ -24,32 +23,20 @@ struct is_fd_times_scalar<volatile const E> : public is_fd_times_scalar<E>{};
 template<typename E>
 struct is_fd_times_scalar<volatile E> : public is_fd_times_scalar<E>{};
 
+template<typename T, typename A> class vector;
 
-template<typename T>
-struct is_fd_times_scalar<binary_expr<matrix<T>, T, std::multiplies<T> > >
+template<typename T, typename A>
+struct is_fd_times_scalar<vector_binary<vector<T, A>, T,
+                                        std::multiplies<T> > >
     : public std::conditional<std::is_floating_point<T>::value,
                               std::true_type,
                               std::false_type>::type{};
 
-template<typename T>
-struct is_fd_times_scalar<binary_expr<T, matrix<T>, std::multiplies<T> > >
+template<typename T, typename A>
+struct is_fd_times_scalar<vector_binary<T, vector<T, A>,
+                                        std::multiplies<T> > >
     : public std::conditional<std::is_floating_point<T>::value,
                               std::true_type,
                               std::false_type>::type{};
-
-template<typename T>
-struct is_fd_times_scalar<binary_expr<typename matrix<T>::row_view, T,
-                                    std::multiplies<T> > >
-    : public std::conditional<std::is_floating_point<T>::value,
-                              std::true_type,
-                              std::false_type>::type{};
-
-template<typename T>
-struct is_fd_times_scalar<binary_expr<T, typename matrix<T>::row_view,
-                                    std::multiplies<T> > >
-    : public std::conditional<std::is_floating_point<T>::value,
-                              std::true_type,
-                              std::false_type>::type{};
-
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_FD_TIMES_SCALAR_H_

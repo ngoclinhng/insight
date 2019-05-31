@@ -16,14 +16,17 @@
 
 #include "insight/internal/storage.h"
 #include "insight/internal/math_functions.h"
+#include "insight/linalg/vector_expression.h"
+#include "insight/linalg/evaluator.h"
 #include "glog/logging.h"
 
 namespace insight {
 
-template<typename T, bool is_column = true,
-         typename Allocator = insight_allocator<T> >
-class vector: private internal::storage<T, Allocator> {
-  using self_type = vector<T, is_column, Allocator>;  // NOLINT
+// Dense, column vector.
+template<typename T, typename Allocator = insight_allocator<T> >
+class vector: public vector_expression<vector<T, Allocator> >,
+              private internal::storage<T, Allocator> {
+  using self_type = vector<T, Allocator>;  // NOLINT
   using buffer = internal::storage<T, Allocator>;
 
  public:
@@ -99,30 +102,6 @@ class vector: private internal::storage<T, Allocator> {
   // Destructor.
   ~vector() { destroy_elements(); }
 
-  // Conversion between column vector and row vector.
-
-  // vector(const vector<T, !is_column, Allocator>& v)
-  //     : buffer(v.size(), v.get_allocator()) {
-  //   // TODO(Linh): Should we use std::copy instead?
-  //   std::uninitialized_copy_n(v.begin(), v.size(), buffer::start);
-  // }
-
-  // self_type& operator=(const vector<T, !is_column, Allocator>& rhs) {
-  //   // Only allocate new memory when the current capacity is less than the
-  //   // size of the right hand side vector `rhs`.
-  //   if (capacity()  < rhs.size()) {
-  //     self_type temp(rhs);
-  //     temp.swap(*this);
-  //     return *this;
-  //   }
-
-  //   // Otherwise, reuse memory and copy data over.
-  //   buffer::alloc = rhs.alloc;
-  //   copy_data(rhs.begin(), rhs.size());
-  //   buffer::end = buffer::start + rhs.size();
-  //   return *this;
-  // }
-
   // Constructs a vector from the input iterator range [first, last).
   template<typename InputIt>
   vector(InputIt first, InputIt last,
@@ -152,11 +131,33 @@ class vector: private internal::storage<T, Allocator> {
     return *this;
   }
 
+  // Constructs a vector from a `normal` vector expression.
+  template<typename E>
+  vector(const vector_expression<E>& expr,
+         const allocator_type& alloc = Allocator())  // NOLINT
+      : buffer(expr.self().size(), alloc) {
+    evaluator<vector_expression<E> >::assign(expr.self(), buffer::start);
+  }
+
+  // Assigns to a `normal` vector expression.
+  template<typename E>
+  self_type& operator=(const vector_expression<E>& expr) {
+    if (capacity() < expr.size()) {
+      self_type temp(expr);
+      temp.swap(*this);
+      return *this;
+    }
+
+    evaluator<vector_expression<E> >::assign(expr.self(), buffer::start);
+    buffer::end = buffer::start + expr.self().size();
+    return *this;
+  }
+
   // Returns the number of rows in `this` vector.
-  inline size_type num_rows() const {return is_column ? size() : 1; }
+  inline size_type num_rows() const {return size(); }
 
   // Returns the number of columns in this vector.
-  inline size_type num_cols() const {return is_column ? 1 : size(); }
+  inline size_type num_cols() const {return (size() == 0) ? 0 : 1; }
 
   // Returns the shape of this vector.
   inline shape_type shape() const {
@@ -333,6 +334,36 @@ class vector: private internal::storage<T, Allocator> {
     }
   }
 
+  // Vector expresison arithmetic.
+
+  template<typename E>
+  inline self_type& operator+=(const vector_expression<E>& expr) {
+    CHECK_EQ(size(), expr.self().size());
+    evaluator<vector_expression<E>>::add(expr.self(), buffer::start);
+    return *this;
+  }
+
+  template<typename E>
+  inline self_type& operator-=(const vector_expression<E>& expr) {
+    CHECK_EQ(size(), expr.self().size());
+    evaluator<vector_expression<E>>::sub(expr.self(), buffer::start);
+    return *this;
+  }
+
+  template<typename E>
+  inline self_type& operator*=(const vector_expression<E>& expr) {
+    CHECK_EQ(size(), expr.self().size());
+    evaluator<vector_expression<E>>::mul(expr.self(), buffer::start);
+    return *this;
+  }
+
+  template<typename E>
+  inline self_type& operator/=(const vector_expression<E>& expr) {
+    CHECK_EQ(size(), expr.self().size());
+    evaluator<vector_expression<E>>::div(expr.self(), buffer::start);
+    return *this;
+  }
+
  private:
   void destroy_elements() {
     // TODO(Linh): Do we really need to do this for trivially destructible
@@ -364,17 +395,11 @@ class vector: private internal::storage<T, Allocator> {
 
 // According to the Effective C++ swap idiom (item 25), we also need to
 // provide a free swap function.
-template<typename T, bool is_column, typename Allocator>
-void swap(vector<T, is_column, Allocator>& v1,
-          vector<T, is_column, Allocator>& v2) {
+template<typename T, typename Allocator>
+void swap(vector<T, Allocator>& v1,
+          vector<T, Allocator>& v2) {  // NOLINT
   v1.swap(v2);
 }
-
-template<typename T, typename Allocator = insight_allocator<T> >
-using column_vector = vector<T, true, Allocator>;
-
-template<typename T, typename Allocator = insight_allocator<T> >
-using row_vector = vector<T, false, Allocator>;  // NOLINT
 
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_VECTOR_H_

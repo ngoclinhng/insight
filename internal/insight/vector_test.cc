@@ -23,7 +23,7 @@ TEST(vector, empty_constructor) {
 }
 
 TEST(vector, constructor_from_initializer_list) {
-  column_vector<double> v = {1, 2, 3, 4};
+  vector<double> v = {1, 2, 3, 4};
 
   ASSERT_FALSE(v.empty());
   ASSERT_EQ(v.size(), 4);
@@ -33,23 +33,12 @@ TEST(vector, constructor_from_initializer_list) {
   ASSERT_EQ(v.shape().first, 4);
   ASSERT_EQ(v.shape().second, 1);
   ASSERT_THAT(v, ElementsAre(1, 2, 3, 4));
-
-  row_vector<double> w = {1, 2, 3, 4};
-
-  ASSERT_FALSE(w.empty());
-  ASSERT_EQ(w.size(), 4);
-  ASSERT_EQ(w.capacity(), 4);
-  ASSERT_EQ(w.num_rows(), 1);
-  ASSERT_EQ(w.num_cols(), 4);
-  ASSERT_EQ(w.shape().first, 1);
-  ASSERT_EQ(w.shape().second, 4);
-  ASSERT_THAT(v, ElementsAre(1, 2, 3, 4));
 }
 
 TEST(vector, assignment_operator) {
-  column_vector<double> v;
-  column_vector<double> w = {10, 20, 30 , 40};
-  column_vector<double> x = {4, 6};
+  vector<double> v;
+  vector<double> w = {10, 20, 30 , 40};
+  vector<double> x = {4, 6};
 
   v = w;
 
@@ -99,7 +88,7 @@ TEST(vector, constructor_from_input_iterator_range) {
   ASSERT_THAT(v, ElementsAre(1, 2, 3, 4));
 
   double data[5] = {10, 20, 30, 40, 50};
-  column_vector<double> w(data, data + 5);
+  vector<double> w(data, data + 5);
 
   ASSERT_FALSE(w.empty());
   ASSERT_EQ(w.size(), 5);
@@ -138,7 +127,7 @@ TEST(vector, operator_plus_equal_scalar) {
 }
 
 TEST(vector, operator_minus_equal_scalar) {
-  column_vector<double> v = {1, 2, 3, 4, 5};
+  vector<double> v = {1, 2, 3, 4, 5};
   v -= 2.0;
   ASSERT_FALSE(v.empty());
   ASSERT_EQ(v.size(), 5);
@@ -151,7 +140,7 @@ TEST(vector, operator_minus_equal_scalar) {
 }
 
 TEST(vector, operator_times_equal_scalar) {
-  column_vector<double> v = {1, 2, 3, 4, 5};
+  vector<double> v = {1, 2, 3, 4, 5};
   v *= 10.0;
 
   ASSERT_FALSE(v.empty());
@@ -177,7 +166,7 @@ TEST(vector, operator_times_equal_scalar) {
 }
 
 TEST(vector, operator_divides_equal_scalar) {
-  column_vector<double> v = {10, 20, 30, 40, 50};
+  vector<double> v = {10, 20, 30, 40, 50};
   v /= 10.0;
 
   ASSERT_FALSE(v.empty());
@@ -189,7 +178,7 @@ TEST(vector, operator_divides_equal_scalar) {
   ASSERT_EQ(v.shape().second, 1);
   ASSERT_THAT(v, ElementsAre(1, 2, 3, 4, 5));
 
-  column_vector<int> w = {2, 4, 6, 8, 10};
+  vector<int> w = {2, 4, 6, 8, 10};
   w /= 2;
 
   ASSERT_FALSE(w.empty());
@@ -203,8 +192,8 @@ TEST(vector, operator_divides_equal_scalar) {
 }
 
 TEST(vector, operator_plus_equal_other_vector) {
-  column_vector<double> v = {1, 2, 3, 4, 5};
-  column_vector<double> w = {10, 20, 30, 40, 50};
+  vector<double> v = {1, 2, 3, 4, 5};
+  vector<double> w = {10, 20, 30, 40, 50};
 
   v += w;
 
@@ -228,8 +217,8 @@ TEST(vector, operator_plus_equal_other_vector) {
   ASSERT_EQ(v.shape().second, 1);
   ASSERT_THAT(v, ElementsAre(22, 44, 66, 88, 110));
 
-  column_vector<int> x = {1, 2, 3, 4, 5};
-  column_vector<int> y = {1, 3, 5, 7, 9};
+  vector<int> x = {1, 2, 3, 4, 5};
+  vector<int> y = {1, 3, 5, 7, 9};
 
   x += y;
 
