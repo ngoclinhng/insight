@@ -35,6 +35,7 @@ struct vector_binary :
   using const_pointer = typename E1::const_pointer;
   using pointer = const_pointer;
   using shape_type = typename E1::shape_type;
+  using functor_type = F;
 
   const E1& e1;
   const E2& e2;
@@ -150,6 +151,7 @@ struct vector_binary<E, typename E::value_type, F>
   using const_pointer = typename E::const_pointer;
   using pointer = const_pointer;
   using shape_type = typename E::shape_type;
+  using functor_type = F;
 
 
   const E& e;
@@ -254,6 +256,7 @@ struct vector_binary<typename E::value_type, E, F>
   using const_pointer = typename E::const_pointer;
   using pointer = const_pointer;
   using shape_type = typename E::shape_type;
+  using functor_type = F;
 
   const value_type scalar;
   const E& e;

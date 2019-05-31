@@ -7,6 +7,7 @@
 
 #include "insight/linalg/type_traits/is_fd_times_scalar.h"
 #include "insight/linalg/type_traits/is_fd_div_scalar.h"
+#include "insight/linalg/type_traits/is_fd_elemwise_op_fd.h"
 
 namespace insight {
 
@@ -31,7 +32,8 @@ template<typename E1, typename E2, typename F>
 struct is_special_vector_expression<vector_binary<E1, E2, F> >
     : public std::conditional<
   is_fd_times_scalar<vector_binary<E1, E2, F> >::value ||
-  is_fd_div_scalar<vector_binary<E1, E2, F> >::value,
+  is_fd_div_scalar<vector_binary<E1, E2, F> >::value ||
+  is_fd_elemwise_op_fd<vector_binary<E1, E2, F> >::value,
   std::true_type,
   std::false_type>::type{};
 

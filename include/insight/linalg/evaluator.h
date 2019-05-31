@@ -129,6 +129,60 @@ struct evaluator<vector_expression<E>,
   }
 };
 
+// x ? y: where `x`, `y` are floating-point, dense vector and `?` is one of
+// addition, substraction, multiplication, or division operation.
+template<typename E>
+struct evaluator<vector_expression<E>,
+                 typename std::enable_if<is_fd_elemwise_op_fd<E>::value,
+                                         void>::type> {
+  using value_type = typename E::value_type;
+  using functor_type = typename E::functor_type;
 
+  // z = x ? y.
+  inline static void assign(const E& expr, value_type* buffer) {
+    if (std::is_same<functor_type, std::plus<value_type> >::value) {
+      internal::insight_add(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                            buffer);
+    } else if (std::is_same<functor_type, std::minus<value_type> >::value) {
+      internal::insight_sub(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                            buffer);
+    } else if (std::is_same<functor_type,
+               std::multiplies<value_type> >::value) {
+      internal::insight_mul(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                            buffer);
+    } else if (std::is_same<functor_type,
+               std::divides<value_type> >::value) {  // NOLINT
+      internal::insight_div(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                            buffer);
+    } else {
+      // Unknown functor type, fallback to default.
+      std::copy(expr.begin(), expr.end(), buffer);
+    }
+  }
+
+  // z += x ? y.
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // z -= x ? y.
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // z *= x ? y.
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // z /= x ? y.
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_EVALUATOR_H_
