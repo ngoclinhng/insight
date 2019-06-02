@@ -9,10 +9,11 @@
 #include "insight/linalg/type_traits/is_fd_div_scalar.h"
 #include "insight/linalg/type_traits/is_fd_elemwise_op_fd.h"
 #include "insight/linalg/type_traits/is_unary_functor_of_fd.h"
+#include "insight/linalg/type_traits/is_fd_matrix_mul_fd_vector.h"
 
 namespace insight {
 
-// Type traits for a special binary vector expression.
+// Type traits for a special binary expression.
 
 template<typename E>
 struct is_special_binary_expression : public std::false_type{};
@@ -38,25 +39,51 @@ struct is_special_binary_expression< binary_expression<E1, E2, F> >
   std::true_type,
   std::false_type>::type{};
 
+// Type traits for special unary expression.
+
 template<typename E>
 struct is_special_unary_expression : public std::false_type{};
 
 template<typename E>
 struct is_special_unary_expression<const E>
-    : public is_special_binary_expression<E>{};
+    : public is_special_unary_expression<E>{};
 
 template<typename E>
 struct is_special_unary_expression<volatile const E>
-    : public is_special_binary_expression<E>{};
+    : public is_special_unary_expression<E>{};
 
 template<typename E>
 struct is_special_unary_expression<volatile E>
-    : public is_special_binary_expression<E>{};
+    : public is_special_unary_expression<E>{};
 
 template<typename E, typename F>
 struct is_special_unary_expression< unary_expression<E, F> >
     : public std::conditional<
   is_unary_functor_of_fd<unary_expression<E, F> >::value,
+  std::true_type,
+  std::false_type>::type{};
+
+// Type traits for special matric-vector multiplication expression.
+
+template<typename E>
+struct is_special_matrix_mul_vector_expression : public std::false_type{};
+
+template<typename E>
+struct is_special_matrix_mul_vector_expression<const E>
+    : public is_special_matrix_mul_vector_expression<E>{};
+
+template<typename E>
+struct is_special_matrix_mul_vector_expression<volatile const E>
+    : public is_special_matrix_mul_vector_expression<E>{};
+
+template<typename E>
+struct is_special_matrix_mul_vector_expression<volatile E>
+    : public is_special_matrix_mul_vector_expression<E>{};
+
+template<typename M, typename V>
+struct is_special_matrix_mul_vector_expression<matrix_mul_vector<M, V> >
+    : public std::conditional<
+  is_fd_matrix_mul_fd_vector<matrix_mul_vector<M, V> >::value,
   std::true_type,
   std::false_type>::type{};
 

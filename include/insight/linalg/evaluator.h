@@ -95,6 +95,46 @@ struct evaluator<
   }
 };
 
+// Evaluate a generic matrix-vector multiplication expression.
+template<typename M, typename V>
+struct evaluator<
+  matrix_mul_vector<M, V>,
+  typename std::enable_if<
+    !is_special_matrix_mul_vector_expression<
+      matrix_mul_vector<M, V> >::value, void>::type
+  > {
+  using value_type = typename matrix_mul_vector<M, V>::value_type;
+
+  inline static void assign(const matrix_mul_vector<M, V>& expr,
+                            value_type* buffer) {
+    std::copy(expr.begin(), expr.end(), buffer);
+  }
+
+  inline static void add(const matrix_mul_vector<M, V>& expr,
+                         value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  inline static void sub(const matrix_mul_vector<M, V>& expr,
+                         value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  inline static void mul(const matrix_mul_vector<M, V>& expr,
+                         value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  inline static void div(const matrix_mul_vector<M, V>& expr,
+                         value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
 // a * x: where `x` is a floating-point, dense vector and `a` is a
 // floating-point scalar.
 template<typename E1, typename E2, typename F>
@@ -306,6 +346,73 @@ struct evaluator<
   }
 
   inline static void div(const unary_expression<E, F>& expr,
+                         value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// A.x: where A is a floating-point, dense matrix and x is a floating-point,
+// dense vector having the same element type.
+template<typename M, typename V>
+struct evaluator<
+  matrix_mul_vector<M, V>,
+  typename std::enable_if<
+    is_fd_matrix_mul_fd_vector<matrix_mul_vector<M, V> >::value,
+    void>::type
+  > {
+  using value_type = typename matrix_mul_vector<M, V>::value_type;
+
+  // y = A.x
+  inline static void assign(const matrix_mul_vector<M, V>& expr,
+                            value_type* buffer) {
+    // TODO(Linh): Do we really need to fill buffer with all zeros first?
+    std::fill(buffer, buffer + expr.size(), value_type()/*zero*/);
+    internal::insight_gemv(CblasNoTrans,
+                           expr.m.num_rows(),
+                           expr.m.num_cols(),
+                           value_type(1.0),
+                           expr.m.begin(),
+                           expr.v.begin(),
+                           value_type()/*zero*/,
+                           buffer);
+  }
+
+  // y += A.x
+  inline static void add(const matrix_mul_vector<M, V>& expr,
+                         value_type* buffer) {
+    internal::insight_gemv(CblasNoTrans,
+                           expr.m.num_rows(),
+                           expr.m.num_cols(),
+                           value_type(1.0),
+                           expr.m.begin(),
+                           expr.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y -= A.x
+  inline static void sub(const matrix_mul_vector<M, V>& expr,
+                         value_type* buffer) {
+    internal::insight_gemv(CblasNoTrans,
+                           expr.m.num_rows(),
+                           expr.m.num_cols(),
+                           value_type(-1.0),
+                           expr.m.begin(),
+                           expr.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y *= A.x
+  inline static void mul(const matrix_mul_vector<M, V>& expr,
+                         value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // y /= A.x
+  inline static void div(const matrix_mul_vector<M, V>& expr,
                          value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });
