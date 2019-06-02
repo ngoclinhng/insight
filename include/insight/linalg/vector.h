@@ -16,7 +16,7 @@
 
 #include "insight/internal/storage.h"
 #include "insight/internal/math_functions.h"
-#include "insight/linalg/vector_expression.h"
+#include "insight/linalg/arithmetic_expression.h"
 #include "insight/linalg/evaluator.h"
 #include "glog/logging.h"
 
@@ -46,6 +46,8 @@ class vector: public vector_expression<vector<T, Allocator> >,
   using const_iterator = const_pointer;
 
   using shape_type = std::pair<size_type, size_type>;
+
+  static constexpr bool is_vector = true;
 
   // Constructs an empty dense vector.
   vector() : buffer() {}
@@ -136,7 +138,7 @@ class vector: public vector_expression<vector<T, Allocator> >,
   vector(const vector_expression<E>& expr,
          const allocator_type& alloc = Allocator())  // NOLINT
       : buffer(expr.self().size(), alloc) {
-    evaluator<vector_expression<E> >::assign(expr.self(), buffer::start);
+    evaluator<E>::assign(expr.self(), buffer::start);
   }
 
   // Assigns to a `normal` vector expression.
@@ -148,7 +150,7 @@ class vector: public vector_expression<vector<T, Allocator> >,
       return *this;
     }
 
-    evaluator<vector_expression<E> >::assign(expr.self(), buffer::start);
+    evaluator<E>::assign(expr.self(), buffer::start);
     buffer::end = buffer::start + expr.self().size();
     return *this;
   }
@@ -339,28 +341,28 @@ class vector: public vector_expression<vector<T, Allocator> >,
   template<typename E>
   inline self_type& operator+=(const vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    evaluator<vector_expression<E>>::add(expr.self(), buffer::start);
+    evaluator<E>::add(expr.self(), buffer::start);
     return *this;
   }
 
   template<typename E>
   inline self_type& operator-=(const vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    evaluator<vector_expression<E>>::sub(expr.self(), buffer::start);
+    evaluator<E>::sub(expr.self(), buffer::start);
     return *this;
   }
 
   template<typename E>
   inline self_type& operator*=(const vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    evaluator<vector_expression<E>>::mul(expr.self(), buffer::start);
+    evaluator<E>::mul(expr.self(), buffer::start);
     return *this;
   }
 
   template<typename E>
   inline self_type& operator/=(const vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    evaluator<vector_expression<E>>::div(expr.self(), buffer::start);
+    evaluator<E>::div(expr.self(), buffer::start);
     return *this;
   }
 

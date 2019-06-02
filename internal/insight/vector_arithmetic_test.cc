@@ -507,8 +507,8 @@ TEST(vector_arithmetic, int_vector_elemwise_division) {
 
 // unary expression test
 
-TEST(vector_arithmetic, float_sqrt) {
-  vector<double> x = {4, 16, 25};
+TEST(vector_arithmetic, sqrt) {
+  vector<double> x = {4, 9, 25};
   vector<double> y = sqrt(x);
 
   EXPECT_EQ(y.num_rows(), 3);
@@ -516,7 +516,6 @@ TEST(vector_arithmetic, float_sqrt) {
   EXPECT_EQ(y.size(), 3);
   EXPECT_EQ(y.shape().first, 3);
   EXPECT_EQ(y.shape().second, 1);
-  EXPECT_THAT(y, ElementsAre(2, 4, 5));
+  EXPECT_THAT(y, ElementsAre(2, 3, 5));
 }
-
 }  // namespace insight

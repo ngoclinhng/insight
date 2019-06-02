@@ -2,8 +2,8 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_LINALG_VECTOR_EXPRESSION_H_
-#define INCLUDE_INSIGHT_LINALG_VECTOR_EXPRESSION_H_
+#ifndef INCLUDE_INSIGHT_LINALG_ARITHMETIC_EXPRESSION_H_
+#define INCLUDE_INSIGHT_LINALG_ARITHMETIC_EXPRESSION_H_
 
 #include <functional>
 #include <iterator>
@@ -13,7 +13,6 @@
 
 #include "glog/logging.h"
 
-
 namespace insight {
 
 // Base class for all vector expressions.
@@ -22,12 +21,21 @@ struct vector_expression {
   const Derived& self() const { return static_cast<const Derived&>(*this); }
 };
 
+// Base class for all matrix expressions.
+template<typename Derived>
+struct matrix_expression {
+  const Derived& self() const { return static_cast<const Derived&>(*this); }
+};
+
 // Binary expression.
 
-// Element-wise arithmetic between two generic vector expressions.
+// Element-wise arithmetic between two generic vector/matrix expressions.
 template<typename E1, typename E2, typename F>
-struct vector_binary :
-      public vector_expression< vector_binary<E1, E2, F> > {
+struct binary_expression : public std::conditional<
+  (E1::is_vector && E2::is_vector),
+  vector_expression< binary_expression<E1, E2, F> >,
+  matrix_expression< binary_expression<E1, E2, F> >
+  >::type {
   // public types.
   using value_type = typename E1::value_type;
   using size_type = typename E1::size_type;
@@ -39,13 +47,16 @@ struct vector_binary :
   using shape_type = typename E1::shape_type;
   using functor_type = F;
 
+  static constexpr bool is_vector = (E1::is_vector && E2::is_vector);
+
   const E1& e1;
   const E2& e2;
   const F& f;
 
-  vector_binary(const E1& e1, const E2& e2, const F& f)
+  binary_expression(const E1& e1, const E2& e2, const F& f)
       : e1(e1), e2(e2), f(f) {
-    CHECK_EQ(e1.size(), e2.size());
+    CHECK_EQ(e1.num_rows(), e2.num_rows());
+    CHECK_EQ(e1.num_cols(), e2.num_cols());
   }
 
   inline size_type num_rows() const { return e1.num_rows(); }
@@ -65,15 +76,15 @@ struct vector_binary :
 
    public:
     // public types.
-    using value_type = typename vector_binary::value_type;
-    using difference_type = typename vector_binary::difference_type;
-    using pointer = typename vector_binary::const_pointer;
-    using reference = typename vector_binary::const_reference;
+    using value_type = typename binary_expression::value_type;
+    using difference_type = typename binary_expression::difference_type;
+    using pointer = typename binary_expression::const_pointer;
+    using reference = typename binary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
     const_iterator() : index_(), expr_(), it1_(), it2_() {}
 
-    const_iterator(const vector_binary& expr, size_type index)
+    const_iterator(const binary_expression& expr, size_type index)
         : expr_(expr), index_(index),
           it1_(expr.e1.begin()),
           it2_(expr.e2.begin()) {}
@@ -127,7 +138,7 @@ struct vector_binary :
     }
 
    private:
-    const vector_binary& expr_;
+    const binary_expression& expr_;
     size_type index_;
     const_subiterator1_type it1_;
     const_subiterator2_type it2_;
@@ -142,8 +153,12 @@ struct vector_binary :
 // Element-wise arithmetic between a generic vector expression
 // and a scalar.
 template<typename E, typename F>
-struct vector_binary<E, typename E::value_type, F>
-    : public vector_expression<vector_binary<E, typename E::value_type, F> > {  // NOLINT
+struct binary_expression<E, typename E::value_type, F>
+    : public std::conditional<
+  E::is_vector,
+  vector_expression<binary_expression<E, typename E::value_type, F> >,
+  matrix_expression<binary_expression<E, typename E::value_type, F> >
+  >::type {
   // public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
@@ -156,11 +171,13 @@ struct vector_binary<E, typename E::value_type, F>
   using functor_type = F;
 
 
+  static constexpr bool is_vector = E::is_vector;
+
   const E& e;
   const value_type scalar;
   const F& f;
 
-  vector_binary(const E& e, value_type scalar, const F& f)
+  binary_expression(const E& e, value_type scalar, const F& f)
       : e(e), scalar(scalar), f(f) {}
 
   inline size_type num_rows() const { return e.num_rows(); }
@@ -179,15 +196,15 @@ struct vector_binary<E, typename E::value_type, F>
 
    public:
     // public types.
-    using value_type = typename vector_binary::value_type;
-    using difference_type = typename vector_binary::difference_type;
-    using pointer = typename vector_binary::const_pointer;
-    using reference = typename vector_binary::const_reference;
+    using value_type = typename binary_expression::value_type;
+    using difference_type = typename binary_expression::difference_type;
+    using pointer = typename binary_expression::const_pointer;
+    using reference = typename binary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
     const_iterator() : index_(), expr_(), it_() {}
 
-    const_iterator(const vector_binary& expr, size_type index)
+    const_iterator(const binary_expression& expr, size_type index)
         : expr_(expr), index_(index), it_(expr.e.begin()) {}
 
     // Copy constructor.
@@ -233,7 +250,7 @@ struct vector_binary<E, typename E::value_type, F>
     }
 
    private:
-    const vector_binary& expr_;
+    const binary_expression& expr_;
     size_type index_;
     const_subiterator_type it_;
   };
@@ -247,8 +264,12 @@ struct vector_binary<E, typename E::value_type, F>
 // Element-wise arithmetic between a scalar and a generic vector
 // expression.
 template<typename E, typename F>
-struct vector_binary<typename E::value_type, E, F>
-    : public vector_expression<vector_binary<typename E::value_type, E, F> > {  // NOLINT
+struct binary_expression<typename E::value_type, E, F>
+    : public std::conditional<
+  E::is_vector,
+  vector_expression<binary_expression<typename E::value_type, E, F> >,
+  matrix_expression<binary_expression<typename E::value_type, E, F> >
+  >::type {
   // Public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
@@ -260,11 +281,13 @@ struct vector_binary<typename E::value_type, E, F>
   using shape_type = typename E::shape_type;
   using functor_type = F;
 
+  static constexpr bool is_vector = E::is_vector;
+
   const value_type scalar;
   const E& e;
   const F& f;
 
-  vector_binary(value_type scalar, const E& e, const F& f)
+  binary_expression(value_type scalar, const E& e, const F& f)
       : scalar(scalar), e(e), f(f) {}
 
   inline size_type num_rows() const { return e.num_rows(); }
@@ -287,15 +310,15 @@ struct vector_binary<typename E::value_type, E, F>
 
    public:
     // public types.
-    using value_type = typename vector_binary::value_type;
-    using difference_type = typename vector_binary::difference_type;
-    using pointer = typename vector_binary::const_pointer;
-    using reference = typename vector_binary::const_reference;
+    using value_type = typename binary_expression::value_type;
+    using difference_type = typename binary_expression::difference_type;
+    using pointer = typename binary_expression::const_pointer;
+    using reference = typename binary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
     const_iterator() : index_(), expr_(), it_() {}
 
-    const_iterator(const vector_binary& expr, size_type index)
+    const_iterator(const binary_expression& expr, size_type index)
         : expr_(expr), index_(index),
           it_(expr.e.begin()) {}
 
@@ -342,7 +365,7 @@ struct vector_binary<typename E::value_type, E, F>
     }
 
    private:
-    const vector_binary& expr_;
+    const binary_expression& expr_;
     size_type index_;
     const_subiterator_type it_;
   };
@@ -356,7 +379,11 @@ struct vector_binary<typename E::value_type, E, F>
 // Unary expression.
 
 template<typename E, typename F>
-struct vector_unary: public vector_expression<vector_unary<E, F> > {
+struct unary_expression
+    : public std::conditional<E::is_vector,
+                              vector_expression<unary_expression<E, F> >,
+                              matrix_expression<unary_expression<E, F> >
+                              >::type {
   // public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
@@ -368,11 +395,12 @@ struct vector_unary: public vector_expression<vector_unary<E, F> > {
   using shape_type = typename E::shape_type;
   using functor_type = F;
 
+  static constexpr bool is_vector = E::is_vector;
 
   const E& e;
   const F& f;
 
-  vector_unary(const E& e, const F& f) : e(e), f(f) {}
+  unary_expression(const E& e, const F& f) : e(e), f(f) {}
 
   inline size_type num_rows() const { return e.num_rows(); }
   inline size_type num_cols() const { return e.num_cols(); }
@@ -390,15 +418,15 @@ struct vector_unary: public vector_expression<vector_unary<E, F> > {
 
    public:
     // public types.
-    using value_type = typename vector_unary::value_type;
-    using difference_type = typename vector_unary::difference_type;
-    using pointer = typename vector_unary::const_pointer;
-    using reference = typename vector_unary::const_reference;
+    using value_type = typename unary_expression::value_type;
+    using difference_type = typename unary_expression::difference_type;
+    using pointer = typename unary_expression::const_pointer;
+    using reference = typename unary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
     const_iterator() : index_(), expr_(), it_() {}
 
-    const_iterator(const vector_unary& expr, size_type index)
+    const_iterator(const unary_expression& expr, size_type index)
         : expr_(expr), index_(index), it_(expr.e.begin()) {}
 
     // Copy constructor.
@@ -444,7 +472,7 @@ struct vector_unary: public vector_expression<vector_unary<E, F> > {
     }
 
    private:
-    const vector_unary& expr_;
+    const unary_expression& expr_;
     size_type index_;
     const_subiterator_type it_;
   };
@@ -466,10 +494,10 @@ inline
 typename
 std::enable_if<
   std::is_same<typename L::value_type, typename R::value_type>::value,
-  vector_binary<L, R, std::plus<typename L::value_type> >
+  binary_expression<L, R, std::plus<typename L::value_type> >
   >::type
 operator+(const vector_expression<L>& e1, const vector_expression<R>& e2) {
-  return vector_binary<
+  return binary_expression<
     L, R,
     std::plus<typename L::value_type>
     >(e1.self(), e2.self(), std::plus<typename L::value_type>());
@@ -478,10 +506,10 @@ operator+(const vector_expression<L>& e1, const vector_expression<R>& e2) {
 // addition between a generic vector expression and a scalar.
 template<typename E>
 inline
-vector_binary<E, typename E::value_type,
+binary_expression<E, typename E::value_type,
                   std::plus<typename E::value_type> >
 operator+(const vector_expression<E>& e, typename E::value_type scalar) {
-  return vector_binary<
+  return binary_expression<
     E,
     typename E::value_type,
     std::plus<typename E::value_type>
@@ -491,10 +519,10 @@ operator+(const vector_expression<E>& e, typename E::value_type scalar) {
 // addition between a scalar and a generic vector expression.
 template<typename E>
 inline
-vector_binary<typename E::value_type, E,
+binary_expression<typename E::value_type, E,
                   std::plus<typename E::value_type> >
 operator+(typename E::value_type scalar, const vector_expression<E>& e) {
-  return vector_binary<
+  return binary_expression<
     typename E::value_type,
     E,
     std::plus<typename E::value_type>
@@ -510,10 +538,10 @@ inline
 typename
 std::enable_if<
   std::is_same<typename L::value_type, typename R::value_type>::value,
-  vector_binary<L, R, std::minus<typename L::value_type> >
+  binary_expression<L, R, std::minus<typename L::value_type> >
   >::type
 operator-(const vector_expression<L>& e1, const vector_expression<R>& e2) {
-  return vector_binary<
+  return binary_expression<
     L, R,
     std::minus<typename L::value_type>
     >(e1.self(), e2.self(), std::minus<typename L::value_type>());
@@ -522,10 +550,10 @@ operator-(const vector_expression<L>& e1, const vector_expression<R>& e2) {
 // Substraction between a generic vector expression and a scalar.
 template<typename E>
 inline
-vector_binary<E, typename E::value_type,
+binary_expression<E, typename E::value_type,
                   std::minus<typename E::value_type> >
 operator-(const vector_expression<E>& e, typename E::value_type scalar) {
-  return vector_binary<
+  return binary_expression<
     E,
     typename E::value_type,
     std::minus<typename E::value_type>
@@ -535,10 +563,10 @@ operator-(const vector_expression<E>& e, typename E::value_type scalar) {
 // Substraction between a scalar and a generic vector expression.
 template<typename E>
 inline
-vector_binary<typename E::value_type, E,
+binary_expression<typename E::value_type, E,
                   std::minus<typename E::value_type> >
 operator-(typename E::value_type scalar, const vector_expression<E>& e) {
-  return vector_binary<
+  return binary_expression<
     typename E::value_type,
     E,
     std::minus<typename E::value_type>
@@ -555,10 +583,10 @@ inline
 typename
 std::enable_if<
   std::is_same<typename L::value_type, typename R::value_type>::value,
-  vector_binary<L, R, std::multiplies<typename L::value_type> >
+  binary_expression<L, R, std::multiplies<typename L::value_type> >
   >::type
 operator*(const vector_expression<L>& e1, const vector_expression<R>& e2) {
-  return vector_binary<
+  return binary_expression<
     L, R,
     std::multiplies<typename L::value_type>
     >(e1.self(), e2.self(), std::multiplies<typename L::value_type>());
@@ -567,10 +595,10 @@ operator*(const vector_expression<L>& e1, const vector_expression<R>& e2) {
 // Multiplication between a generic vector expression and a scalar.
 template<typename E>
 inline
-vector_binary<E, typename E::value_type,
+binary_expression<E, typename E::value_type,
             std::multiplies<typename E::value_type> >
 operator*(const vector_expression<E>& e, typename E::value_type scalar) {
-  return vector_binary<
+  return binary_expression<
     E,
     typename E::value_type,
     std::multiplies<typename E::value_type>
@@ -580,10 +608,10 @@ operator*(const vector_expression<E>& e, typename E::value_type scalar) {
 // Multiplication between a scalar and a generic vector expression.
 template<typename E>
 inline
-vector_binary<typename E::value_type, E,
+binary_expression<typename E::value_type, E,
             std::multiplies<typename E::value_type> >
 operator*(typename E::value_type scalar, const vector_expression<E>& e) {
-  return vector_binary<
+  return binary_expression<
     typename E::value_type,
     E,
     std::multiplies<typename E::value_type>
@@ -599,10 +627,10 @@ inline
 typename
 std::enable_if<
   std::is_same<typename L::value_type, typename R::value_type>::value,
-  vector_binary<L, R, std::divides<typename L::value_type> >
+  binary_expression<L, R, std::divides<typename L::value_type> >
   >::type
 operator/(const vector_expression<L>& e1, const vector_expression<R>& e2) {
-  return vector_binary<
+  return binary_expression<
     L, R,
     std::divides<typename L::value_type>
     >(e1.self(), e2.self(), std::divides<typename L::value_type>());
@@ -612,10 +640,10 @@ operator/(const vector_expression<L>& e1, const vector_expression<R>& e2) {
 // a scalar.
 template<typename E>
 inline
-vector_binary<E, typename E::value_type,
+binary_expression<E, typename E::value_type,
                   std::divides<typename E::value_type> >
 operator/(const vector_expression<E>& e, typename E::value_type scalar) {
-  return vector_binary<
+  return binary_expression<
     E,
     typename E::value_type,
     std::divides<typename E::value_type>
@@ -626,10 +654,10 @@ operator/(const vector_expression<E>& e, typename E::value_type scalar) {
 // expression.
 template<typename E>
 inline
-vector_binary<typename E::value_type, E,
+binary_expression<typename E::value_type, E,
                   std::divides<typename E::value_type> >
 operator/(typename E::value_type scalar, const vector_expression<E>& e) {
-  return vector_binary<
+  return binary_expression<
     typename E::value_type,
     E,
     std::divides<typename E::value_type>
@@ -641,9 +669,9 @@ operator/(typename E::value_type scalar, const vector_expression<E>& e) {
 
 template<typename E>
 inline
-vector_unary<E, unary_functor::sqrt<typename E::value_type> >
+unary_expression<E, unary_functor::sqrt<typename E::value_type> >
 sqrt(const vector_expression<E>& e) {
-  return vector_unary<
+  return unary_expression<
     E,
     unary_functor::sqrt<typename E::value_type>
     >(e.self(), unary_functor::sqrt<typename E::value_type>());
@@ -651,9 +679,9 @@ sqrt(const vector_expression<E>& e) {
 
 template<typename E>
 inline
-vector_unary<E, unary_functor::exp<typename E::value_type> >
+unary_expression<E, unary_functor::exp<typename E::value_type> >
 exp(const vector_expression<E>& e) {
-  return vector_unary<
+  return unary_expression<
     E,
     unary_functor::exp<typename E::value_type>
     >(e.self(), unary_functor::exp<typename E::value_type>());
@@ -661,12 +689,14 @@ exp(const vector_expression<E>& e) {
 
 template<typename E>
 inline
-vector_unary<E, unary_functor::log<typename E::value_type> >
+unary_expression<E, unary_functor::log<typename E::value_type> >
 log(const vector_expression<E>& e) {
-  return vector_unary<
+  return unary_expression<
     E,
     unary_functor::log<typename E::value_type>
     >(e.self(), unary_functor::log<typename E::value_type>());
 }
+
 }  // namespace insight
-#endif  // INCLUDE_INSIGHT_LINALG_VECTOR_EXPRESSION_H_
+
+#endif  // INCLUDE_INSIGHT_LINALG_ARITHMETIC_EXPRESSION_H_
