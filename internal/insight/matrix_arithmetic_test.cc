@@ -233,5 +233,15 @@ TEST(matrix_arithmetic, sqrt) {
   EXPECT_EQ(m.num_cols(), 3);
   EXPECT_EQ(m.size(), 6);
   EXPECT_THAT(m, ElementsAre(0.5, 6.5, 12.5, 20.5, 30.5, 42.5));
+
+  matrix<double> m2 = {{1, 2, 3}, {4, 5, 6}};
+  matrix<double> m3 = {{-1, 2, 6}, {12, 20, 30}};
+
+  m = sqrt(m2 + m3);
+
+  EXPECT_EQ(m.num_rows(), 2);
+  EXPECT_EQ(m.num_cols(), 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_THAT(m, ElementsAre(0, 2, 3, 4, 5, 6));
 }
 }  // namespace insight
