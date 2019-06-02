@@ -15,13 +15,17 @@
 
 #include "insight/internal/storage.h"
 #include "insight/internal/math_functions.h"
+#include "insight/linalg/arithmetic_expression.h"
+#include "insight/linalg/evaluator.h"
 
 #include "glog/logging.h"
 
 namespace insight {
 
 template<typename T, typename Allocator = insight_allocator<T> >
-class matrix: private internal::storage<T, Allocator> {
+class matrix:
+      public matrix_expression<matrix<T, Allocator> >,
+      private internal::storage<T, Allocator> {
   using self_type = matrix<T, Allocator>;
   using buffer = internal::storage<T, Allocator>;
 
@@ -41,6 +45,8 @@ class matrix: private internal::storage<T, Allocator> {
   using const_iterator = const_pointer;
 
   using shape_type = std::pair<size_type, size_type>;
+
+  static constexpr bool is_vector = false;
 
   // Constructs an empty dense matrix.
   matrix() : buffer(),
@@ -320,63 +326,92 @@ class matrix: private internal::storage<T, Allocator> {
   //   return *this;
   // }
 
+  // Constructs a matrix from a generic matrix expression.
+  template<typename E>
+  matrix(const matrix_expression<E>& expr,
+         const allocator_type& alloc = Allocator())  // NOLINT
+      : buffer(expr.self().size(), alloc),
+        num_rows_(expr.self().num_rows()),
+        num_cols_(expr.self().num_cols()) {
+    evaluator<E>::assign(expr.self(), buffer::start);
+  }
+
+  // Assigns to a generic matrix expression.
+  template<typename E>
+  self_type& operator=(const matrix_expression<E>& expr) {
+    if (capacity() < expr.size()) {
+      self_type temp(expr);
+      temp.swap(*this);
+      return *this;
+    }
+
+    evaluator<E>::assign(expr.self(), buffer::start);
+    buffer::end = buffer::start + expr.self().size();
+    num_rows_ = expr.self().num_rows();
+    num_cols_ = expr.self().num_cols();
+    return *this;
+  }
+
   // Return the number of rows in `this` matrix.
-  size_type num_rows() const { return num_rows_; }
+  inline size_type num_rows() const { return num_rows_; }
 
   // Returns the number of columns in `this` matrix.
-  size_type num_cols() const { return num_cols_; }
+  inline size_type num_cols() const { return num_cols_; }
 
   // Returns the `(num_rows, num_cols)` pair that represents the
   // shape/dimensions of `this` matrix.
-  shape_type shape() const {
+  inline shape_type shape() const {
     return shape_type(num_rows_, num_cols_);
   }
 
   // Returns the number of elements in `this` matrix.
-  size_type size() const { return (buffer::end - buffer::start); }
+  inline size_type size() const { return (buffer::end - buffer::start); }
 
   // Returns true if this matrix is empty.
-  bool empty() const { return size() == 0;}
+  inline bool empty() const { return size() == 0;}
 
   // Returns the number of elements that the matrix has currently
   // allocated space for.
-  size_type capacity() const { return (buffer::last - buffer::start); }
+  inline size_type capacity() const {
+    return (buffer::last - buffer::start);
+  }
 
   //
   // Returns the underlying allocator.
-  allocator_type get_allocator() const { return buffer::alloc; }
+  inline allocator_type get_allocator() const { return buffer::alloc; }
 
   // Accesses the element at index i in the underlying buffer without
   // bounce-checking. A reference is returned.
-  reference operator[](const size_type i) { return buffer::start[i]; }
+  inline reference operator[](const size_type i) { return buffer::start[i]; }
 
   // Accesses the element at index i in the underlying buffer without
   // bounce-checking. A const reference is returned.
-  const_reference operator[](const size_type i) const {
+  inline const_reference operator[](const size_type i) const {
     return buffer::start[i];
   }
 
   // Accesses the element at row `i` and column `j` in the matrix without
   // bounce-checking. A reference is returned.
-  reference operator()(const size_type i, const size_type j) {
+  inline reference operator()(const size_type i, const size_type j) {
     return buffer::start[i * num_cols_ + j];
   }
 
   // Accesses the element at row `i` and column `j` in the matrix without
   // bounce-checking. A const reference is returned.
-  const_reference operator()(const size_type i, const size_type j) const {
+  inline const_reference operator()(const size_type i,
+                                    const size_type j) const {
     return buffer::start[i * num_cols_ + j];
   }
 
   // Element-wise iterator
 
-  iterator begin() { return buffer::start; }
-  const_iterator begin() const { return buffer::start; }
-  const_iterator cbegin() const { return buffer::start; }
+  inline iterator begin() { return buffer::start; }
+  inline const_iterator begin() const { return buffer::start; }
+  inline const_iterator cbegin() const { return buffer::start; }
 
-  iterator end() { return buffer::end; }
-  const_iterator end() const { return buffer::end; }
-  const_iterator cend() const { return buffer::end; }
+  inline iterator end() { return buffer::end; }
+  inline const_iterator end() const { return buffer::end; }
+  inline const_iterator cend() const { return buffer::end; }
 
   // Swap two matrices.
   void swap(self_type& other) noexcept {
@@ -415,23 +450,23 @@ class matrix: private internal::storage<T, Allocator> {
       CHECK_LT(index, base->num_rows()) << "row_view: invalid row index";
     }
 
-    size_type num_rows() const { return 1; }
+    inline size_type num_rows() const { return 1; }
 
-    size_type num_cols() const { return backing_matrix_->num_cols(); }
+    inline size_type num_cols() const { return backing_matrix_->num_cols(); }
 
-    shape_type shape() const {
+    inline shape_type shape() const {
       return shape_type(1, num_cols());
     }
 
-    size_type size() const { return num_cols(); }
+    inline size_type size() const { return num_cols(); }
 
-    bool empty() const { return size() == 0; }
+    inline bool empty() const { return size() == 0; }
 
-    reference operator[](const size_type i) {
+    inline reference operator[](const size_type i) {
       return row_start_[i];
     }
 
-    const_reference operator[](const size_type i) const {
+    inline const_reference operator[](const size_type i) const {
       return row_start_[i];
     }
 
@@ -440,15 +475,15 @@ class matrix: private internal::storage<T, Allocator> {
     using iterator = pointer;
     using const_iterator = const_pointer;
 
-    iterator begin() { return row_start_; }
-    const_iterator begin() const { return row_start_; }
-    const_iterator cbegin() const { return row_start_; }
+    inline iterator begin() { return row_start_; }
+    inline const_iterator begin() const { return row_start_; }
+    inline const_iterator cbegin() const { return row_start_; }
 
-    iterator end() { return row_end_; }
-    const_iterator end() const { return row_end_; }
-    const_iterator cend() const { return row_end_; }
+    inline iterator end() { return row_end_; }
+    inline const_iterator end() const { return row_end_; }
+    inline const_iterator cend() const { return row_end_; }
 
-    bool has_backing_matrix(const matrix_type& base) const {
+    inline bool has_backing_matrix(const matrix_type& base) const {
       return (backing_matrix_ == &base);
     }
 
@@ -497,7 +532,7 @@ class matrix: private internal::storage<T, Allocator> {
   };
 
   // Accesses the row at index `row_index`.
-  row_view row_at(size_type row_index) {
+  inline row_view row_at(size_type row_index) {
     return row_view(this, row_index);
   }
 
@@ -606,6 +641,40 @@ class matrix: private internal::storage<T, Allocator> {
       auto it = other.begin();
       std::for_each(begin(), end(), [&](reference e) { e /= *it++; });
     }
+    return *this;
+  }
+
+  // Matrix expresison arithmetic.
+
+  template<typename E>
+  inline self_type& operator+=(const matrix_expression<E>& expr) {
+    CHECK_EQ(num_rows(), expr.self().num_rows());
+    CHECK_EQ(num_cols(), expr.self().num_cols());
+    evaluator<E>::add(expr.self(), buffer::start);
+    return *this;
+  }
+
+  template<typename E>
+  inline self_type& operator-=(const matrix_expression<E>& expr) {
+    CHECK_EQ(num_rows(), expr.self().num_rows());
+    CHECK_EQ(num_cols(), expr.self().num_cols());
+    evaluator<E>::sub(expr.self(), buffer::start);
+    return *this;
+  }
+
+  template<typename E>
+  inline self_type& operator*=(const matrix_expression<E>& expr) {
+    CHECK_EQ(num_rows(), expr.self().num_rows());
+    CHECK_EQ(num_cols(), expr.self().num_cols());
+    evaluator<E>::mul(expr.self(), buffer::start);
+    return *this;
+  }
+
+  template<typename E>
+  inline self_type& operator/=(const matrix_expression<E>& expr) {
+    CHECK_EQ(num_rows(), expr.self().num_rows());
+    CHECK_EQ(num_cols(), expr.self().num_cols());
+    evaluator<E>::div(expr.self(), buffer::start);
     return *this;
   }
 

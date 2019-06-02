@@ -150,7 +150,7 @@ struct binary_expression : public std::conditional<
   inline const_iterator cend() const  {return end(); }
 };
 
-// Element-wise arithmetic between a generic vector expression
+// Element-wise arithmetic between a generic vector/matrix expression
 // and a scalar.
 template<typename E, typename F>
 struct binary_expression<E, typename E::value_type, F>
@@ -261,7 +261,7 @@ struct binary_expression<E, typename E::value_type, F>
   inline const_iterator cend() const  {return end(); }
 };
 
-// Element-wise arithmetic between a scalar and a generic vector
+// Element-wise arithmetic between a scalar and a generic vector/matrix
 // expression.
 template<typename E, typename F>
 struct binary_expression<typename E::value_type, E, F>
@@ -483,7 +483,7 @@ struct unary_expression
   inline const_iterator cend() const  {return end(); }
 };
 
-// overload operators.
+// overload operators for vector expressions.
 
 // Addition between two generic vector expressions.
 template<typename L, typename R>
@@ -664,8 +664,190 @@ operator/(typename E::value_type scalar, const vector_expression<E>& e) {
     >(scalar, e.self(), std::divides<typename E::value_type>());
 }
 
+// overload operators for matrix expressions.
+
+// Addition between two generic matrix expressions.
+template<typename L, typename R>
+inline
+// We need to make sure that whose ever L and R are they must have the same
+// element type. So that, for example no viable overload for addition
+// between an integer matrix and a floating-point matrix.
+typename
+std::enable_if<
+  std::is_same<typename L::value_type, typename R::value_type>::value,
+  binary_expression<L, R, std::plus<typename L::value_type> >
+  >::type
+operator+(const matrix_expression<L>& e1, const matrix_expression<R>& e2) {
+  return binary_expression<
+    L, R,
+    std::plus<typename L::value_type>
+    >(e1.self(), e2.self(), std::plus<typename L::value_type>());
+}
+
+// addition between a generic matrix expression and a scalar.
+template<typename E>
+inline
+binary_expression<E, typename E::value_type,
+                  std::plus<typename E::value_type> >
+operator+(const matrix_expression<E>& e, typename E::value_type scalar) {
+  return binary_expression<
+    E,
+    typename E::value_type,
+    std::plus<typename E::value_type>
+    >(e.self(), scalar, std::plus<typename E::value_type>());
+}
+
+// addition between a scalar and a generic matrix expression.
+template<typename E>
+inline
+binary_expression<typename E::value_type, E,
+                  std::plus<typename E::value_type> >
+operator+(typename E::value_type scalar, const matrix_expression<E>& e) {
+  return binary_expression<
+    typename E::value_type,
+    E,
+    std::plus<typename E::value_type>
+    >(scalar, e.self(), std::plus<typename E::value_type>());
+}
+
+// Substraction between two generic matrix expressions.
+template<typename L, typename R>
+inline
+// We need to make sure that whose ever L and R are they must have the same
+// element type. So that, for example no viable overload for substraction
+// between an integer matrix and a floating-point matrix.
+typename
+std::enable_if<
+  std::is_same<typename L::value_type, typename R::value_type>::value,
+  binary_expression<L, R, std::minus<typename L::value_type> >
+  >::type
+operator-(const matrix_expression<L>& e1, const matrix_expression<R>& e2) {
+  return binary_expression<
+    L, R,
+    std::minus<typename L::value_type>
+    >(e1.self(), e2.self(), std::minus<typename L::value_type>());
+}
+
+// Substraction between a generic matrix expression and a scalar.
+template<typename E>
+inline
+binary_expression<E, typename E::value_type,
+                  std::minus<typename E::value_type> >
+operator-(const matrix_expression<E>& e, typename E::value_type scalar) {
+  return binary_expression<
+    E,
+    typename E::value_type,
+    std::minus<typename E::value_type>
+    >(e.self(), scalar, std::minus<typename E::value_type>());
+}
+
+// Substraction between a scalar and a generic matrix expression.
+template<typename E>
+inline
+binary_expression<typename E::value_type, E,
+                  std::minus<typename E::value_type> >
+operator-(typename E::value_type scalar, const matrix_expression<E>& e) {
+  return binary_expression<
+    typename E::value_type,
+    E,
+    std::minus<typename E::value_type>
+    >(scalar, e.self(), std::minus<typename E::value_type>());
+}
+
+// Element-wise multiplication between two generic vector
+// expressions.
+template<typename L, typename R>
+inline
+// We need to make sure that whose ever L and R are they must have the same
+// element type. So that, for example no viable overload for element-wise
+// multiplication between an integer matrix and a floating-point matrix.
+typename
+std::enable_if<
+  std::is_same<typename L::value_type, typename R::value_type>::value,
+  binary_expression<L, R, std::multiplies<typename L::value_type> >
+  >::type
+operator*(const matrix_expression<L>& e1, const matrix_expression<R>& e2) {
+  return binary_expression<
+    L, R,
+    std::multiplies<typename L::value_type>
+    >(e1.self(), e2.self(), std::multiplies<typename L::value_type>());
+}
+
+// Multiplication between a generic matrix expression and a scalar.
+template<typename E>
+inline
+binary_expression<E, typename E::value_type,
+            std::multiplies<typename E::value_type> >
+operator*(const matrix_expression<E>& e, typename E::value_type scalar) {
+  return binary_expression<
+    E,
+    typename E::value_type,
+    std::multiplies<typename E::value_type>
+    >(e.self(), scalar, std::multiplies<typename E::value_type>());
+}
+
+// Multiplication between a scalar and a generic matrix expression.
+template<typename E>
+inline
+binary_expression<typename E::value_type, E,
+            std::multiplies<typename E::value_type> >
+operator*(typename E::value_type scalar, const matrix_expression<E>& e) {
+  return binary_expression<
+    typename E::value_type,
+    E,
+    std::multiplies<typename E::value_type>
+    >(scalar, e.self(), std::multiplies<typename E::value_type>());
+}
+
+// Element-wise division between two generic matrix expressions.
+template<typename L, typename R>
+inline
+// We need to make sure that whose ever L and R are they must have the same
+// element type. So that, for example no viable overload for element-wise
+// division between an integer matrix and a floating-point matrix.
+typename
+std::enable_if<
+  std::is_same<typename L::value_type, typename R::value_type>::value,
+  binary_expression<L, R, std::divides<typename L::value_type> >
+  >::type
+operator/(const matrix_expression<L>& e1, const matrix_expression<R>& e2) {
+  return binary_expression<
+    L, R,
+    std::divides<typename L::value_type>
+    >(e1.self(), e2.self(), std::divides<typename L::value_type>());
+}
+
+// Element-wise division between a generic matrix expression and
+// a scalar.
+template<typename E>
+inline
+binary_expression<E, typename E::value_type,
+                  std::divides<typename E::value_type> >
+operator/(const matrix_expression<E>& e, typename E::value_type scalar) {
+  return binary_expression<
+    E,
+    typename E::value_type,
+    std::divides<typename E::value_type>
+    >(e.self(), scalar, std::divides<typename E::value_type>());
+}
+
+// Element-wise division between a scalar and a generic matrix expression.
+template<typename E>
+inline
+binary_expression<typename E::value_type, E,
+                  std::divides<typename E::value_type> >
+operator/(typename E::value_type scalar, const matrix_expression<E>& e) {
+  return binary_expression<
+    typename E::value_type,
+    E,
+    std::divides<typename E::value_type>
+    >(scalar, e.self(), std::divides<typename E::value_type>());
+}
+
 // Unary functions.
 // TODO(Linh): should these be in here?
+
+// Unary expression of a generic vector expression.
 
 template<typename E>
 inline
@@ -691,6 +873,38 @@ template<typename E>
 inline
 unary_expression<E, unary_functor::log<typename E::value_type> >
 log(const vector_expression<E>& e) {
+  return unary_expression<
+    E,
+    unary_functor::log<typename E::value_type>
+    >(e.self(), unary_functor::log<typename E::value_type>());
+}
+
+// Unary expression of a generic matrix expression.
+
+template<typename E>
+inline
+unary_expression<E, unary_functor::sqrt<typename E::value_type> >
+sqrt(const matrix_expression<E>& e) {
+  return unary_expression<
+    E,
+    unary_functor::sqrt<typename E::value_type>
+    >(e.self(), unary_functor::sqrt<typename E::value_type>());
+}
+
+template<typename E>
+inline
+unary_expression<E, unary_functor::exp<typename E::value_type> >
+exp(const matrix_expression<E>& e) {
+  return unary_expression<
+    E,
+    unary_functor::exp<typename E::value_type>
+    >(e.self(), unary_functor::exp<typename E::value_type>());
+}
+
+template<typename E>
+inline
+unary_expression<E, unary_functor::log<typename E::value_type> >
+log(const matrix_expression<E>& e) {
   return unary_expression<
     E,
     unary_functor::log<typename E::value_type>

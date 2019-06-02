@@ -38,5 +38,21 @@ struct is_fd_times_scalar<binary_expression<T, vector<T, A>,
     : public std::conditional<std::is_floating_point<T>::value,
                               std::true_type,
                               std::false_type>::type{};
+
+template<typename T, typename A> class matrix;
+
+template<typename T, typename A>
+struct is_fd_times_scalar<binary_expression<matrix<T, A>, T,
+                                            std::multiplies<T> > >
+    : public std::conditional<std::is_floating_point<T>::value,
+                              std::true_type,
+                              std::false_type>::type{};
+
+template<typename T, typename A>
+struct is_fd_times_scalar<binary_expression<T, matrix<T, A>,
+                                            std::multiplies<T> > >
+    : public std::conditional<std::is_floating_point<T>::value,
+                              std::true_type,
+                              std::false_type>::type{};
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_FD_TIMES_SCALAR_H_

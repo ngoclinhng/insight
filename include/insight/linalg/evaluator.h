@@ -61,7 +61,7 @@ struct evaluator<
   unary_expression<E, F>,
   typename
   std::enable_if<
-    !is_special_unary_expression<unary_expression<E, F>>::value,
+    !is_special_unary_expression<unary_expression<E, F> >::value,
     void>::type> {
   using value_type = typename unary_expression<E, F>::value_type;
 

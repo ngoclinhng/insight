@@ -30,6 +30,14 @@ struct is_fd_div_scalar<binary_expression<vector<T, A>, T, std::divides<T> > >
     : public std::conditional<std::is_floating_point<T>::value,
                               std::true_type,
                               std::false_type>::type{};
+
+template<typename T, typename A> class matrix;
+
+template<typename T, typename A>
+struct is_fd_div_scalar<binary_expression<matrix<T, A>, T, std::divides<T> > >
+    : public std::conditional<std::is_floating_point<T>::value,
+                              std::true_type,
+                              std::false_type>::type{};
 }  // namespace insight
 
 #endif  // INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_FD_DIV_SCALAR_H_

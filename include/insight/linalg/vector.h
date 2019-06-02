@@ -133,7 +133,7 @@ class vector: public vector_expression<vector<T, Allocator> >,
     return *this;
   }
 
-  // Constructs a vector from a `normal` vector expression.
+  // Constructs a vector from a generic vector expression.
   template<typename E>
   vector(const vector_expression<E>& expr,
          const allocator_type& alloc = Allocator())  // NOLINT
@@ -141,7 +141,7 @@ class vector: public vector_expression<vector<T, Allocator> >,
     evaluator<E>::assign(expr.self(), buffer::start);
   }
 
-  // Assigns to a `normal` vector expression.
+  // Assigns to a generic vector expression.
   template<typename E>
   self_type& operator=(const vector_expression<E>& expr) {
     if (capacity() < expr.size()) {
