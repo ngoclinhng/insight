@@ -144,7 +144,7 @@ class vector: public vector_expression<vector<T, Allocator> >,
   // Assigns to a generic vector expression.
   template<typename E>
   self_type& operator=(const vector_expression<E>& expr) {
-    if (capacity() < expr.size()) {
+    if (capacity() < expr.self().size()) {
       self_type temp(expr);
       temp.swap(*this);
       return *this;

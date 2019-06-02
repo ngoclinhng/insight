@@ -226,7 +226,12 @@ TEST(matrix_arithmetic, sqrt) {
   EXPECT_EQ(m.num_cols(), 3);
   EXPECT_EQ(m.size(), 6);
   EXPECT_THAT(m, ElementsAre(0, 2, 3, 4, 5, 6));
-  EXPECT_THAT(m.row_at(0), ElementsAre(0, 2, 3));
-  EXPECT_THAT(m.row_at(1), ElementsAre(4, 5, 6));
+
+  m = sqrt(m1) + m1 + 0.5;
+
+  EXPECT_EQ(m.num_rows(), 2);
+  EXPECT_EQ(m.num_cols(), 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_THAT(m, ElementsAre(0.5, 6.5, 12.5, 20.5, 30.5, 42.5));
 }
 }  // namespace insight

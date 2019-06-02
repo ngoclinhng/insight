@@ -339,7 +339,7 @@ class matrix:
   // Assigns to a generic matrix expression.
   template<typename E>
   self_type& operator=(const matrix_expression<E>& expr) {
-    if (capacity() < expr.size()) {
+    if (capacity() < expr.self().size()) {
       self_type temp(expr);
       temp.swap(*this);
       return *this;
