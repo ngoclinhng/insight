@@ -57,6 +57,7 @@ struct matrix_mul_vector
   class const_iterator {
    private:
     using const_matrix_iterator = typename M::const_iterator;
+    using const_vector_iterator = typename V::const_iterator;
 
    public:
     // public types.
@@ -66,33 +67,42 @@ struct matrix_mul_vector
     using reference = typename V::const_reference;
     using iterator_category = std::input_iterator_tag;
 
-    const_iterator() : expr_(), row_index_(), mit_() {}
+    const_iterator() : row_index_(),
+                       vsize_(),
+                       vbegin_(),
+                       vend_(),
+                       mit_() {}
 
     const_iterator(const matrix_mul_vector& expr, size_type row_index)
-        : expr_(expr),
-          row_index_(row_index),
+        : row_index_(row_index),
+          vsize_(expr.v.size()),
+          vbegin_(expr.v.begin()),
+          vend_(expr.v.end()),
           mit_(expr.m.begin()) {}
 
     // Copy constructor.
     const_iterator(const const_iterator& it)
-        : expr_(it.expr_),
-          row_index_(it.row_index_),
+        : row_index_(it.row_index_),
+          vsize_(it.vsize_),
+          vbegin_(it.vbegin_),
+          vend_(it.vend_),
           mit_(it.mit_) {
     }
 
     // Assignment operator.
     const_iterator& operator=(const const_iterator& it) {
       if (this == &it) { return *this; }
-      expr_ = it.expr_;
       row_index_ = it.row_index_;
+      vsize_ = it.vsize_;
+      vbegin_ = it.vbegin_;
+      vend_ = it.vend_;
       mit_ = it.mit_;
       return *this;
     }
 
     // Dereference.
     inline value_type operator*() const {
-      return std::inner_product(expr_.v.begin(), expr_.v.end(), mit_,
-                                /*zero*/value_type());
+      return std::inner_product(vbegin_, vend_, mit_, /*zero*/value_type());
     }
 
     // Comparison.
@@ -108,7 +118,7 @@ struct matrix_mul_vector
     // Prefix increment ++it.
     inline const_iterator& operator++() {
       ++row_index_;
-      std::advance(mit_, expr_.m.num_cols());
+      std::advance(mit_, vsize_);
       return *this;
     }
 
@@ -120,8 +130,10 @@ struct matrix_mul_vector
     }
 
    private:
-    const matrix_mul_vector& expr_;
     size_type row_index_;
+    size_type vsize_;
+    const_vector_iterator vbegin_;
+    const_vector_iterator vend_;
     const_matrix_iterator mit_;
   };
 

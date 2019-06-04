@@ -82,17 +82,18 @@ struct binary_expression : public std::conditional<
     using reference = typename binary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
-    const_iterator() : index_(), expr_(), it1_(), it2_() {}
+    const_iterator() : index_(), f_(), it1_(), it2_() {}
 
     const_iterator(const binary_expression& expr, size_type index)
-        : expr_(expr), index_(index),
+        : index_(index),
+          f_(&expr.f),
           it1_(expr.e1.begin()),
           it2_(expr.e2.begin()) {}
 
     // Copy constructor.
     const_iterator(const const_iterator& it)
-        : expr_(it.expr_),
-          index_(it.index_),
+        : index_(it.index_),
+          f_(it.f_),
           it1_(it.it1_),
           it2_(it.it2_) {
     }
@@ -100,8 +101,8 @@ struct binary_expression : public std::conditional<
     // Assignment operator.
     const_iterator& operator=(const const_iterator& it) {
       if (this == &it) { return *this; }
-      expr_ = it.expr_;
       index_ = it.index_;
+      f_ = it.f_;
       it1_ = it.it1_;
       it2_ = it.it2_;
       return *this;
@@ -109,7 +110,7 @@ struct binary_expression : public std::conditional<
 
     // Dereference.
     inline value_type operator*() const {
-      return expr_.f(*it1_, *it2_);
+      return (*f_)(*it1_, *it2_);
     }
 
     // Comparison.
@@ -138,8 +139,8 @@ struct binary_expression : public std::conditional<
     }
 
    private:
-    const binary_expression& expr_;
     size_type index_;
+    const functor_type* f_;
     const_subiterator1_type it1_;
     const_subiterator2_type it2_;
   };
@@ -202,27 +203,34 @@ struct binary_expression<E, typename E::value_type, F>
     using reference = typename binary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
-    const_iterator() : index_(), expr_(), it_() {}
+    const_iterator() : index_(), f_(), scalar_(), it_() {}
 
     const_iterator(const binary_expression& expr, size_type index)
-        : expr_(expr), index_(index), it_(expr.e.begin()) {}
+        : index_(index),
+          f_(&expr.f),
+          scalar_(expr.scalar),
+          it_(expr.e.begin()) {}
 
     // Copy constructor.
     const_iterator(const const_iterator& it)
-        : expr_(it.expr_), index_(it.index_), it_(it.it_) {}
+        : index_(it.index_),
+          f_(it.f_),
+          scalar_(it.scalar_),
+          it_(it.it_) {}
 
     // Assignment operator.
     const_iterator& operator=(const const_iterator& it) {
       if (this == &it) { return *this; }
-      expr_ = it.expr_;
       index_ = it.index_;
+      f_ = it.f_;
+      scalar_ = it.scalar_;
       it_ = it.it_;
       return *this;
     }
 
     // Dereference.
     inline value_type operator*() const {
-      return expr_.f(*it_, expr_.scalar);
+      return (*f_)(*it_, scalar_);
     }
 
     // Comparison.
@@ -250,8 +258,9 @@ struct binary_expression<E, typename E::value_type, F>
     }
 
    private:
-    const binary_expression& expr_;
     size_type index_;
+    const functor_type* f_;
+    value_type scalar_;
     const_subiterator_type it_;
   };
 
@@ -316,28 +325,34 @@ struct binary_expression<typename E::value_type, E, F>
     using reference = typename binary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
-    const_iterator() : index_(), expr_(), it_() {}
+    const_iterator() : index_(), f_(), scalar_(), it_() {}
 
     const_iterator(const binary_expression& expr, size_type index)
-        : expr_(expr), index_(index),
+        : index_(index),
+          f_(&expr.f),
+          scalar_(expr.scalar),
           it_(expr.e.begin()) {}
 
     // Copy constructor.
     const_iterator(const const_iterator& it)
-        : expr_(it.expr_), index_(it.index_), it_(it.it_) { }
+        : index_(it.index_),
+          f_(it.f_),
+          scalar_(it.scalar_),
+          it_(it.it_) { }
 
     // Assignment operator.
     const_iterator& operator=(const const_iterator& it) {
       if (this == &it) { return *this; }
-      expr_ = it.expr_;
       index_ = it.index_;
+      f_ = it.f_;
+      scalar_ = it.scalar_;
       it_ = it.it_;
       return *this;
     }
 
     // Dereference.
     inline value_type operator*() const {
-      return expr_.f(expr_.scalar, *it_);
+      return (*f_)(scalar_, *it_);
     }
 
     // Comparison.
@@ -365,8 +380,9 @@ struct binary_expression<typename E::value_type, E, F>
     }
 
    private:
-    const binary_expression& expr_;
     size_type index_;
+    const functor_type* f_;
+    value_type scalar_;
     const_subiterator_type it_;
   };
 
@@ -424,27 +440,31 @@ struct unary_expression
     using reference = typename unary_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
-    const_iterator() : index_(), expr_(), it_() {}
+    const_iterator() : index_(), f_(), it_() {}
 
     const_iterator(const unary_expression& expr, size_type index)
-        : expr_(expr), index_(index), it_(expr.e.begin()) {}
+        : index_(index),
+          f_(&expr.f),
+          it_(expr.e.begin()) {}
 
     // Copy constructor.
     const_iterator(const const_iterator& it)
-        : expr_(it.expr_), index_(it.index_), it_(it.it_) {}
+        : index_(it.index_),
+          f_(it.f_),
+          it_(it.it_) {}
 
     // Assignment operator.
     const_iterator& operator=(const const_iterator& it) {
       if (this == &it) { return *this; }
-      expr_ = it.expr_;
       index_ = it.index_;
+      f_ = it.f_;
       it_ = it.it_;
       return *this;
     }
 
     // Dereference.
     inline value_type operator*() const {
-      return expr_.f(*it_);
+      return (*f_)(*it_);
     }
 
     // Comparison.
@@ -472,8 +492,8 @@ struct unary_expression
     }
 
    private:
-    const unary_expression& expr_;
     size_type index_;
+    const functor_type* f_;
     const_subiterator_type it_;
   };
 
