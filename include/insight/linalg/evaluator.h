@@ -7,365 +7,413 @@
 
 #include <algorithm>
 
-#include "insight/linalg/type_traits.h"
+#include "insight/linalg/type_traits/is_special_expression.h"
 #include "insight/internal/math_functions.h"
 
 namespace insight {
 
 template<typename E, typename Enable = void> struct evaluator;
 
-// Evaluate a `normal` binary expression.
-template<typename E1, typename E2, typename F>
-struct evaluator<
-  binary_expression<E1, E2, F>,
-  typename
-  std::enable_if<
-    !is_special_binary_expression<binary_expression<E1, E2, F>>::value,
-    void>::type> {
-  using value_type = typename binary_expression<E1, E2, F>::value_type;
+// Evaluate a normal, non-special expression.
+template<typename E>
+struct evaluator<E, typename std::enable_if< !is_special_expression<E>::value,void>::type > {  // NOLINT
+  using value_type = typename E::value_type;
 
-  inline static void assign(const binary_expression<E1, E2, F>& expr,
-                            value_type* buffer) {
+  inline static void assign(const E& expr, value_type* buffer) {
     std::copy(expr.begin(), expr.end(), buffer);
   }
 
-  inline static void add(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  inline static void add(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ += e; });
   }
 
-  inline static void sub(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  inline static void sub(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ -= e; });
   }
 
-  inline static void mul(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  inline static void mul(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ *= e; });
   }
 
-  inline static void div(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  inline static void div(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });
   }
 };
 
+// 1. ax
+//
+// Evaluate a binary expression of the form `a * x` where `a` is
+// a floating-point scalar, and `x` is either a floating-point, dense vector
+// or a floating-point, dense matrix.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_ax<E>::value, void>::type> {
+  using value_type = typename E::value_type;
 
-// Evaluate a `normal` unary expression.
-template<typename E, typename F>
-struct evaluator<
-  unary_expression<E, F>,
-  typename
-  std::enable_if<
-    !is_special_unary_expression<unary_expression<E, F> >::value,
-    void>::type> {
-  using value_type = typename unary_expression<E, F>::value_type;
-
-  inline static void assign(const unary_expression<E, F>& expr,
-                            value_type* buffer) {
-    std::copy(expr.begin(), expr.end(), buffer);
-  }
-
-  inline static void add(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ += e; });
-  }
-
-  inline static void sub(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ -= e; });
-  }
-
-  inline static void mul(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ *= e; });
-  }
-
-  inline static void div(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ /= e; });
-  }
-};
-
-// Evaluate a generic matrix-vector multiplication expression.
-template<typename M, typename V>
-struct evaluator<
-  matrix_mul_vector<M, V>,
-  typename std::enable_if<
-    !is_special_matrix_mul_vector_expression<
-      matrix_mul_vector<M, V> >::value, void>::type
-  > {
-  using value_type = typename matrix_mul_vector<M, V>::value_type;
-
-  inline static void assign(const matrix_mul_vector<M, V>& expr,
-                            value_type* buffer) {
-    std::copy(expr.begin(), expr.end(), buffer);
-  }
-
-  inline static void add(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ += e; });
-  }
-
-  inline static void sub(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ -= e; });
-  }
-
-  inline static void mul(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ *= e; });
-  }
-
-  inline static void div(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
-    std::for_each(expr.begin(), expr.end(),
-                  [&](const value_type& e) { *buffer++ /= e; });
-  }
-};
-
-// a * x: where `x` is a floating-point, dense vector and `a` is a
-// floating-point scalar.
-template<typename E1, typename E2, typename F>
-struct evaluator<
-  binary_expression<E1, E2, F>,
-  typename std::enable_if<
-    is_fd_times_scalar<binary_expression<E1, E2, F> >::value,
-    void>::type> {
-  using value_type = typename binary_expression<E1, E2, F>::value_type;
-
-  inline static void assign(const binary_expression<E1, E2, F>& expr,
-                            value_type* buffer) {
-    // TODO(Linh): Benchmark carefully to make sure that two BLAS steps
-    // actully beat the single, simple for-loop?
-    // std::copy(expr.begin(), expr.end(), buffer);
+  // y = ax
+  inline static void assign(const E& expr, value_type* buffer) {
+    // TODO(Linh): Benchmark carefully to make sure that the two BLAS steps
+    // actually beat the performance of a single copy call.
     std::copy(expr.e.begin(), expr.e.end(), buffer);
     internal::insight_scal(expr.size(), expr.scalar, buffer);
   }
 
-  // y += a * x
-  inline static void add(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
-    internal::insight_axpy(expr.size(), expr.scalar, expr.e.begin(), buffer);
+  // y += ax
+  inline static void add(const E& expr, value_type* buffer) {
+    internal::insight_axpy(expr.size(), expr.scalar, expr.e.begin(),
+                           buffer);
   }
 
-  // y -= a * x
-  inline static void sub(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
-    internal::insight_axpy(expr.size(), -expr.scalar, expr.e.begin(), buffer);
+  // y -= ax.
+  inline static void sub(const E& expr, value_type* buffer) {
+    internal::insight_axpy(expr.size(), -expr.scalar, expr.e.begin(),
+                           buffer);
   }
 
-  // y *= a * x
-  inline static void mul(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // y *= ax
+  inline static void mul(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ *= e; });
   }
 
-  // y /= a * x
-  inline static void div(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // y /= ax
+  inline static void div(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });
   }
 };
 
-// x / a: where `x` is a floating-point. dense vector and `a` is a floating
-// point scalar.
-template<typename E1, typename E2, typename F>
-struct evaluator<
-  binary_expression<E1, E2, F>,
-  typename std::enable_if<
-    is_fd_div_scalar<binary_expression<E1, E2, F> >::value,
-    void>::type> {
-  using value_type = typename binary_expression<E1, E2, F>::value_type;
+// 2. xda
+//
+// Evaluate a binary expression of the form `x/a` where `a` is
+// a floating-point scalar, and `x` is either a floating-point, dense vector
+// or a floating-point, dense matrix.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_xda<E>::value, void>::type> {
+  using value_type = typename E::value_type;
 
-  // y = x/a.
-  inline static void assign(const binary_expression<E1, E2, F>& expr,
-                            value_type* buffer) {
-    // TODO(Linh): Benchmark carefully to make sure that two BLAS steps
-    // actully beat the single, simple for-loop?
-    // std::copy(expr.begin(), expr.end(), buffer);
+  // y = x/a
+  inline static void assign(const E& expr, value_type* buffer) {
+    // TODO(Linh): Benchmark carefully to make sure that the two BLAS steps
+    // actually beat the performance of a single copy call.
     std::copy(expr.e.begin(), expr.e.end(), buffer);
     internal::insight_scal(expr.size(), value_type(1.0)/expr.scalar, buffer);
   }
 
-  // y += x/a
-  inline static void add(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // y += x/a.
+  inline static void add(const E& expr, value_type* buffer) {
     internal::insight_axpy(expr.size(), value_type(1.0)/expr.scalar,
                            expr.e.begin(), buffer);
   }
 
-  // y -= x/a
-  inline static void sub(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // y -= x/a.
+  inline static void sub(const E& expr, value_type* buffer) {
     internal::insight_axpy(expr.size(), value_type(-1.0)/expr.scalar,
                            expr.e.begin(), buffer);
   }
 
-  // y *= x/a
-  inline static void mul(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // y *= x/a.
+  inline static void mul(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ *= e; });
   }
 
-  // y /= x/a
-  inline static void div(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // y /= x/a.
+  inline static void div(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });
   }
 };
 
-// x ? y: where `x`, `y` are floating-point, dense vector and `?` is one of
-// addition, substraction, multiplication, or division operation.
-template<typename E1, typename E2, typename F>
-struct evaluator<
-  binary_expression<E1, E2, F>,
-  typename std::enable_if<
-    is_fd_elemwise_op_fd<binary_expression<E1, E2, F> >::value,
-    void>::type> {
-  using value_type = typename binary_expression<E1, E2, F>::value_type;
-  using functor_type = typename binary_expression<E1, E2, F>::functor_type;
 
-  // z = x ? y.
-  //
-  // TODO(Linh): This is NOT scalable! Consider doing something like
-  // this:
-  //  binary_functor_traits<functor_type>::apply(expr, buffer);
-  inline static void assign(const binary_expression<E1, E2, F>& expr,
-                            value_type* buffer) {
-    if (std::is_same<functor_type, std::plus<value_type> >::value) {
-      internal::insight_add(expr.size(), expr.e1.begin(), expr.e2.begin(),
-                            buffer);
-    } else if (std::is_same<functor_type, std::minus<value_type> >::value) {
-      internal::insight_sub(expr.size(), expr.e1.begin(), expr.e2.begin(),
-                            buffer);
-    } else if (std::is_same<functor_type,
-               std::multiplies<value_type> >::value) {
-      internal::insight_mul(expr.size(), expr.e1.begin(), expr.e2.begin(),
-                            buffer);
-    } else if (std::is_same<functor_type,
-               std::divides<value_type> >::value) {  // NOLINT
-      internal::insight_div(expr.size(), expr.e1.begin(), expr.e2.begin(),
-                            buffer);
-    } else {
-      // Unknown functor type, fallback to default.
-      std::copy(expr.begin(), expr.end(), buffer);
-    }
+// 3. xpy.
+//
+// Evaluate a binary expression of the form `x + y` where `x` and `y` are
+// either floating-point, dense vectors or floating-point, dense matrices.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_xpy<E>::value, void>::type> {
+  using value_type = typename E::value_type;
+
+  // z = x + y
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_add(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                          buffer);
   }
 
-  // z += x ? y.
-  inline static void add(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // z += x + y
+  inline static void add(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ += e; });
   }
 
-  // z -= x ? y.
-  inline static void sub(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // z -= x + y
+  inline static void sub(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ -= e; });
   }
 
-  // z *= x ? y.
-  inline static void mul(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // z *= x + y
+  inline static void mul(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ *= e; });
   }
 
-  // z /= x ? y.
-  inline static void div(const binary_expression<E1, E2, F>& expr,
-                         value_type* buffer) {
+  // z /= x + y
+  inline static void div(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });
   }
 };
 
+// 4. xmy.
+//
+// Evaluate a binary expression of the form `x - y` where `x` and `y` are
+// either floating-point, dense vectors or floating-point, dense matrices.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_xmy<E>::value, void>::type> {
+  using value_type = typename E::value_type;
 
-template<typename E, typename F>
-struct evaluator<
-  unary_expression<E, F>,
-  typename std::enable_if<
-    is_unary_functor_of_fd<unary_expression<E, F> >::value,
-    void>::type> {
-  using value_type = typename unary_expression<E, F>::value_type;
-  using functor_type = typename unary_expression<E, F>::functor_type;
-
-  // TODO(Linh): This is NOT scalable! Consider doing something like
-  // this:
-  //  unary_functor_traits<functor_type>::apply(expr, buffer);
-  inline static void assign(const unary_expression<E, F>& expr,
-                            value_type* buffer) {
-    if (std::is_same<functor_type,
-        unary_functor::sqrt<value_type> >::value) {
-      internal::insight_sqrt(expr.e.size(), expr.e.begin(), buffer);
-    } else if (std::is_same<functor_type,
-               unary_functor::exp<value_type> >::value) {
-      internal::insight_exp(expr.e.size(), expr.e.begin(), buffer);
-    } else if (std::is_same<functor_type,
-               unary_functor::log<value_type> >::value) {
-      internal::insight_log(expr.e.size(), expr.e.begin(), buffer);
-    } else {
-      // Fallback to default.
-      std::copy(expr.begin(), expr.end(), buffer);
-    }
+  // z = x - y
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_sub(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                          buffer);
   }
 
-  inline static void add(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
+  // z += x - y
+  inline static void add(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ += e; });
   }
 
-  inline static void sub(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
+  // z -= x - y
+  inline static void sub(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ -= e; });
   }
 
-  inline static void mul(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
+  // z *= x - y
+  inline static void mul(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ *= e; });
   }
 
-  inline static void div(const unary_expression<E, F>& expr,
-                         value_type* buffer) {
+  // z /= x - y
+  inline static void div(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });
   }
 };
 
-// A.x: where A is a floating-point, dense matrix and x is a floating-point,
-// dense vector having the same element type.
-template<typename M, typename V>
-struct evaluator<
-  matrix_mul_vector<M, V>,
-  typename std::enable_if<
-    is_fd_matrix_mul_fd_vector<matrix_mul_vector<M, V> >::value,
-    void>::type
-  > {
-  using value_type = typename matrix_mul_vector<M, V>::value_type;
+// 5. xty.
+//
+// Evaluate a binary expression of the form `x * y` where `x` and `y` are
+// either floating-point, dense vectors or floating-point, dense matrices.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_xty<E>::value, void>::type> {
+  using value_type = typename E::value_type;
 
-  // y = A.x
-  inline static void assign(const matrix_mul_vector<M, V>& expr,
-                            value_type* buffer) {
+  // z = x * y
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_mul(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                          buffer);
+  }
+
+  // z += x * y
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // z -= x * y
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // z *= x * y
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // z /= x * y
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// 6. xdy.
+//
+// Evaluate a binary expression of the form `x / y` where `x` and `y` are
+// either floating-point, dense vectors or floating-point, dense matrices.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_xdy<E>::value, void>::type> {
+  using value_type = typename E::value_type;
+
+  // z = x/y
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_div(expr.size(), expr.e1.begin(), expr.e2.begin(),
+                          buffer);
+  }
+
+  // z += x/y
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // z -= x/y
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // z *= x/y
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // z /= x/y
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// 7. sqrt(x).
+//
+// Evaluate a unary expression of the form `sqrt(x)` where `x` is
+// either a floating-point, dense vector or a floating-point, dense matrice.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_sqrt_x<E>::value,
+                                            void>::type> {
+  using value_type = typename E::value_type;
+
+  // y = sqrt(x).
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_sqrt(expr.e.size(), expr.e.begin(), buffer);
+  }
+
+  // y += sqrt(x).
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // z -= sqrt(x)
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // z *= sqrt(x)
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // z /= sqrt(x)
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// 8. exp(x).
+//
+// Evaluate a unary expression of the form `exp(x)` where `x` is
+// either a floating-point, dense vector or a floating-point, dense matrice.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_exp_x<E>::value,
+                                            void>::type> {
+  using value_type = typename E::value_type;
+
+  // y = exp(x).
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_exp(expr.e.size(), expr.e.begin(), buffer);
+  }
+
+  // y += exp(x).
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // z -= exp(x)
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // z *= exp(x)
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // z /= exp(x)
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// 9. log(x).
+//
+// Evaluate a unary expression of the form `log(x)` where `x` is
+// either a floating-point, dense vector or a floating-point, dense matrice.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_log_x<E>::value,
+                                            void>::type> {
+  using value_type = typename E::value_type;
+
+  // y = log(x).
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_log(expr.e.size(), expr.e.begin(), buffer);
+  }
+
+  // y += log(x).
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // z -= log(x)
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // z *= log(x)
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // z /= log(x)
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// 10. Ax.
+//
+// Evaluate a matrix-vector multiplication expression of the form `A * x`,
+// where `A` is a floating-point, dense matrix and `x` is a floating-point,
+// dense vector.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_Ax<E>::value,
+                                            void>::type> {
+  using value_type = typename E::value_type;
+
+  // y = Ax.
+  inline static void assign(const E& expr, value_type* buffer) {
     // TODO(Linh): Do we really need to fill buffer with all zeros first?
     std::fill(buffer, buffer + expr.size(), value_type()/*zero*/);
     internal::insight_gemv(CblasNoTrans,
@@ -378,9 +426,8 @@ struct evaluator<
                            buffer);
   }
 
-  // y += A.x
-  inline static void add(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
+  // y += Ax.
+  inline static void add(const E& expr, value_type* buffer) {
     internal::insight_gemv(CblasNoTrans,
                            expr.m.num_rows(),
                            expr.m.num_cols(),
@@ -391,9 +438,8 @@ struct evaluator<
                            buffer);
   }
 
-  // y -= A.x
-  inline static void sub(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
+  // y -= Ax
+  inline static void sub(const E& expr, value_type* buffer) {
     internal::insight_gemv(CblasNoTrans,
                            expr.m.num_rows(),
                            expr.m.num_cols(),
@@ -404,19 +450,18 @@ struct evaluator<
                            buffer);
   }
 
-  // y *= A.x
-  inline static void mul(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
+  // y *= Ax
+  inline static void mul(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ *= e; });
   }
 
-  // y /= A.x
-  inline static void div(const matrix_mul_vector<M, V>& expr,
-                         value_type* buffer) {
+  // y /= Ax
+  inline static void div(const E& expr, value_type* buffer) {
     std::for_each(expr.begin(), expr.end(),
                   [&](const value_type& e) { *buffer++ /= e; });
   }
 };
+
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_EVALUATOR_H_
