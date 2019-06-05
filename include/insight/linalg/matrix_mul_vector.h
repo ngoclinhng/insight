@@ -31,7 +31,7 @@ struct matrix_mul_vector
   using value_type = typename M::value_type;
   using size_type = typename M::size_type;
   using difference_type = typename M::difference_type;
-  using const_reference = typename M::const_reference;
+  using const_reference = value_type;  // typename M::const_reference;
   using reference = const_reference;
   using const_pointer = typename M::const_pointer;
   using pointer = const_pointer;
@@ -57,6 +57,10 @@ struct matrix_mul_vector
     return row_view<self_type>(this, row_index);
   }
 
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
+  }
+
   // Iterator.
 
   class const_iterator;
@@ -69,10 +73,10 @@ struct matrix_mul_vector
 
    public:
     // public types.
-    using value_type = typename V::value_type;
-    using difference_type = typename V::difference_type;
-    using pointer = typename V::const_pointer;
-    using reference = typename V::const_reference;
+    using value_type = typename matrix_mul_vector::value_type;
+    using difference_type = typename matrix_mul_vector::difference_type;
+    using pointer = typename matrix_mul_vector::const_pointer;
+    using reference = typename matrix_mul_vector::const_reference;
     using iterator_category = std::input_iterator_tag;
 
     const_iterator() : row_index_(),
@@ -109,17 +113,17 @@ struct matrix_mul_vector
     }
 
     // Dereference.
-    inline value_type operator*() const {
+    inline reference operator*() const {
       return std::inner_product(vbegin_, vend_, mit_, /*zero*/value_type());
     }
 
     // Comparison.
 
-    inline bool operator==(const const_iterator& it) {
+    inline bool operator==(const const_iterator& it) const {
       return (row_index_ == it.row_index_);
     }
 
-    inline bool operator!=(const const_iterator& it) {
+    inline bool operator!=(const const_iterator& it) const {
       return !(*this == it);
     }
 

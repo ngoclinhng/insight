@@ -8,9 +8,11 @@
 #include <algorithm>
 #include <iterator>
 
+#include "glog/logging.h"
+
 namespace insight {
 
-// Forward declaration for row expression.
+// Forward declaration for matrix expression.
 template<typename Derived> class matrix_expression;
 
 // Row view of a row.
@@ -37,8 +39,7 @@ struct row_view : public matrix_expression<row_view<M> > {
         end_(std::next(m->begin(), (row_index + 1) * num_cols_)),
         cbegin_(std::next(m->cbegin(), row_index * num_cols_)),
         cend_(std::next(m->cbegin(), (row_index + 1) * num_cols_)) {
-    // TODO(Linh): Check to make sure that row_index is in the range
-    // [0, m->num_rows()).
+    CHECK_LT(row_index, m->num_rows()) << "invalid row index";
   }
 
   inline size_type num_rows() const { return 1; }
@@ -61,6 +62,8 @@ struct row_view : public matrix_expression<row_view<M> > {
   inline const_iterator cend() const { return cend_; }
 
   // row_view-scalar arithmetic.
+  // TODO(Linh): Only anable these arithmetic operations when `M` is
+  // of type matrix not matrix expression.
 
   // Increments each and every element in the row by the constant
   // `scalar`.

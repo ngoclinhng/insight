@@ -30,6 +30,9 @@ struct matrix_expression {
 // Forward declaration for row_view.
 template<typename M> struct row_view;
 
+// Foreard declaration for col_view.
+template<typename M> struct col_view;
+
 // Binary expression.
 
 // Element-wise arithmetic between two generic vector/matrix expressions.
@@ -47,7 +50,7 @@ struct binary_expression : public std::conditional<
   using value_type = typename E1::value_type;
   using size_type = typename E1::size_type;
   using difference_type = typename E1::difference_type;
-  using const_reference = typename E1::const_reference;
+  using const_reference = value_type;  // typename E1::const_reference;
   using reference = const_reference;
   using const_pointer = typename E1::const_pointer;
   using pointer = const_pointer;
@@ -73,6 +76,10 @@ struct binary_expression : public std::conditional<
 
   inline row_view<self_type> row_at(size_type row_index) {
     return row_view<self_type>(this, row_index);
+  }
+
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
   }
 
   // Iterator.
@@ -120,17 +127,17 @@ struct binary_expression : public std::conditional<
     }
 
     // Dereference.
-    inline value_type operator*() const {
+    inline reference operator*() const {
       return (*f_)(*it1_, *it2_);
     }
 
     // Comparison.
 
-    inline bool operator==(const const_iterator& it) {
+    inline bool operator==(const const_iterator& it) const {
       return (index_ == it.index_);
     }
 
-    inline bool operator!=(const const_iterator& it) {
+    inline bool operator!=(const const_iterator& it) const {
       return !(*this == it);
     }
 
@@ -179,7 +186,7 @@ struct binary_expression<E, typename E::value_type, F>
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
   using difference_type = typename E::difference_type;
-  using const_reference = typename E::const_reference;
+  using const_reference = value_type;  // typename E::const_reference;
   using reference = const_reference;
   using const_pointer = typename E::const_pointer;
   using pointer = const_pointer;
@@ -203,6 +210,10 @@ struct binary_expression<E, typename E::value_type, F>
 
   inline row_view<self_type> row_at(size_type row_index) {
     return row_view<self_type>(this, row_index);
+  }
+
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
   }
 
   // Iterator.
@@ -248,17 +259,17 @@ struct binary_expression<E, typename E::value_type, F>
     }
 
     // Dereference.
-    inline value_type operator*() const {
+    inline reference operator*() const {
       return (*f_)(*it_, scalar_);
     }
 
     // Comparison.
 
-    inline bool operator==(const const_iterator& it) {
+    inline bool operator==(const const_iterator& it) const {
       return (index_ == it.index_);
     }
 
-    inline bool operator!=(const const_iterator& it) {
+    inline bool operator!=(const const_iterator& it) const {
       return !(*this == it);
     }
 
@@ -306,7 +317,7 @@ struct binary_expression<typename E::value_type, E, F>
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
   using difference_type = typename E::difference_type;
-  using const_reference = typename E::const_reference;
+  using const_reference = value_type;  // typename E::const_reference;
   using reference = const_reference;
   using const_pointer = typename E::const_pointer;
   using pointer = const_pointer;
@@ -329,6 +340,10 @@ struct binary_expression<typename E::value_type, E, F>
 
   inline row_view<self_type> row_at(size_type row_index) {
     return row_view<self_type>(this, row_index);
+  }
+
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
   }
 
   // Iterator.
@@ -374,17 +389,17 @@ struct binary_expression<typename E::value_type, E, F>
     }
 
     // Dereference.
-    inline value_type operator*() const {
+    inline reference operator*() const {
       return (*f_)(scalar_, *it_);
     }
 
     // Comparison.
 
-    inline bool operator==(const const_iterator& it) {
+    inline bool operator==(const const_iterator& it) const {
       return (index_ == it.index_);
     }
 
-    inline bool operator!=(const const_iterator& it) {
+    inline bool operator!=(const const_iterator& it) const {
       return !(*this == it);
     }
 
@@ -431,7 +446,7 @@ struct unary_expression
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
   using difference_type = typename E::difference_type;
-  using const_reference = typename E::const_reference;
+  using const_reference = value_type;  // typename E::const_reference;
   using reference = const_reference;
   using const_pointer = typename E::const_pointer;
   using pointer = const_pointer;
@@ -452,6 +467,10 @@ struct unary_expression
 
   inline row_view<self_type> row_at(size_type row_index) {
     return row_view<self_type>(this, row_index);
+  }
+
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
   }
 
   // Iterator.
@@ -494,17 +513,17 @@ struct unary_expression
     }
 
     // Dereference.
-    inline value_type operator*() const {
+    inline reference operator*() const {
       return (*f_)(*it_);
     }
 
     // Comparison.
 
-    inline bool operator==(const const_iterator& it) {
+    inline bool operator==(const const_iterator& it) const {
       return (index_ == it.index_);
     }
 
-    inline bool operator!=(const const_iterator& it) {
+    inline bool operator!=(const const_iterator& it) const {
       return !(*this == it);
     }
 

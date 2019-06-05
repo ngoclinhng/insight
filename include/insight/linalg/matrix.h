@@ -17,6 +17,7 @@
 #include "insight/internal/math_functions.h"
 
 #include "insight/linalg/row_view.h"
+#include "insight/linalg/col_view.h"
 #include "insight/linalg/evaluator.h"
 
 #include "glog/logging.h"
@@ -425,6 +426,11 @@ class matrix:
   // Accesses the row at index `row_index`.
   inline row_view<self_type> row_at(size_type row_index) {
     return row_view<self_type>(this, row_index);
+  }
+
+  // Accesses the column at index `col_index`.
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
   }
 
   // matrix-scalar arithmetic.

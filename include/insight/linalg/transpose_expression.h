@@ -21,9 +21,9 @@ struct transpose_expression
   using size_type = typename E::size_type;
   using difference_type = typename E::difference_type;
   using const_reference = typename E::const_reference;
-  using reference = const_reference;
+  using reference = typename E::reference;
   using const_pointer = typename E::const_pointer;
-  using pointer = const_pointer;
+  using pointer = typename E::pointer;
   using shape_type = typename E::shape_type;
 
   // TODO(Linh): When we transpose a matrix expression we'll get back
@@ -44,6 +44,10 @@ struct transpose_expression
 
   inline row_view<self_type> row_at(size_type row_index) {
     return row_view<self_type>(this, row_index);
+  }
+
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
   }
 
   // Iterator.
@@ -100,17 +104,17 @@ struct transpose_expression
     }
 
     // Dereference.
-    inline value_type operator*() const {
+    inline reference operator*() const {
       return *row_it_;
     }
 
     // Comparison.
 
-    inline bool operator==(const const_iterator& it) {
+    inline bool operator==(const const_iterator& it) const {
       return (index_ == it.index_);
     }
 
-    inline bool operator!=(const const_iterator& it) {
+    inline bool operator!=(const const_iterator& it) const {
       return !(*this == it);
     }
 

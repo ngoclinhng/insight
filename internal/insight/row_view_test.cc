@@ -2,7 +2,6 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#include "insight/linalg/row_view.h"
 #include "insight/linalg/matrix.h"
 
 #include "gtest/gtest.h"
