@@ -16,7 +16,6 @@
 
 #include "insight/internal/storage.h"
 #include "insight/internal/math_functions.h"
-#include "insight/linalg/arithmetic_expression.h"
 #include "insight/linalg/evaluator.h"
 #include "glog/logging.h"
 
@@ -364,6 +363,11 @@ class vector: public vector_expression<vector<T, Allocator> >,
     CHECK_EQ(size(), expr.self().size());
     evaluator<E>::div(expr.self(), buffer::start);
     return *this;
+  }
+
+  // Transpose of this vector
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
   }
 
  private:

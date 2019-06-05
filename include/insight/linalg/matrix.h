@@ -15,7 +15,8 @@
 
 #include "insight/internal/storage.h"
 #include "insight/internal/math_functions.h"
-#include "insight/linalg/arithmetic_expression.h"
+
+#include "insight/linalg/row_view.h"
 #include "insight/linalg/evaluator.h"
 
 #include "glog/logging.h"
@@ -421,119 +422,9 @@ class matrix:
     swap(num_cols_, other.num_cols_);
   }
 
-
-  // row view
-  // ==================================================================
-
-  class row_view {
-    using matrix_type = matrix<T, Allocator>;
-    using self_type = row_view;
-
-   public:
-    using value_type = typename matrix_type::value_type;
-    using size_type = typename matrix_type::size_type;
-    using difference_type = typename matrix_type::difference_type;
-    using reference = value_type&;
-    using const_reference = const value_type&;
-    using pointer = typename matrix_type::pointer;
-    using const_pointer = typename matrix_type::const_pointer;
-
-    using shape_type = typename matrix_type::shape_type;
-
-    row_view() = default;
-    ~row_view() = default;
-
-    row_view(matrix_type* base, size_type index)
-        : backing_matrix_(base),
-          row_start_(base->begin() + index * base->num_cols()),
-          row_end_(base->begin() + (index + 1) * base->num_cols()) {
-      CHECK_LT(index, base->num_rows()) << "row_view: invalid row index";
-    }
-
-    inline size_type num_rows() const { return 1; }
-
-    inline size_type num_cols() const { return backing_matrix_->num_cols(); }
-
-    inline shape_type shape() const {
-      return shape_type(1, num_cols());
-    }
-
-    inline size_type size() const { return num_cols(); }
-
-    inline bool empty() const { return size() == 0; }
-
-    inline reference operator[](const size_type i) {
-      return row_start_[i];
-    }
-
-    inline const_reference operator[](const size_type i) const {
-      return row_start_[i];
-    }
-
-    // iterator.
-
-    using iterator = pointer;
-    using const_iterator = const_pointer;
-
-    inline iterator begin() { return row_start_; }
-    inline const_iterator begin() const { return row_start_; }
-    inline const_iterator cbegin() const { return row_start_; }
-
-    inline iterator end() { return row_end_; }
-    inline const_iterator end() const { return row_end_; }
-    inline const_iterator cend() const { return row_end_; }
-
-    inline bool has_backing_matrix(const matrix_type& base) const {
-      return (backing_matrix_ == &base);
-    }
-
-    // row-scalar arithmetic.
-
-    // Increments each and every element in the row by the constant
-    // `scalar`.
-    inline self_type& operator+=(value_type scalar) {
-      std::for_each(begin(), end(), [&](reference e) { e += scalar; });
-      return *this;
-    }
-
-    // Decrements each and every element in the row by the constant
-    // `scalar`.
-    inline self_type& operator-=(value_type scalar) {
-      std::for_each(begin(), end(), [&](reference e) { e -= scalar; });
-      return *this;
-    }
-
-    // Replaces each and every element in the row by the result of
-    // multiplication of that element and a `scalar`.
-    inline self_type& operator*=(value_type scalar) {
-      if (std::is_floating_point<T>::value) {
-        internal::insight_scal(size(), scalar, begin());
-      } else {
-        std::for_each(begin(), end(), [&](reference e) { e *= scalar; });
-      }
-      return *this;
-    }
-
-    // Replaces each and every element in the row by the result of
-    // dividing that element by a constant `scalar`.
-    inline self_type& operator/=(value_type scalar) {
-      if (std::is_floating_point<T>::value) {
-        internal::insight_scal(size(), value_type(1.0) / scalar, begin());
-      } else {
-        std::for_each(begin(), end(), [&](reference e) { e /= scalar; });
-      }
-      return *this;
-    }
-
-   private:
-    matrix_type* backing_matrix_;
-    pointer row_start_;
-    pointer row_end_;
-  };
-
   // Accesses the row at index `row_index`.
-  inline row_view row_at(size_type row_index) {
-    return row_view(this, row_index);
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
   }
 
   // matrix-scalar arithmetic.
@@ -676,6 +567,11 @@ class matrix:
     CHECK_EQ(num_cols(), expr.self().num_cols());
     evaluator<E>::div(expr.self(), buffer::start);
     return *this;
+  }
+
+  // Transpose of this matrix.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
   }
 
  private:

@@ -12,6 +12,10 @@ namespace insight {
 template<typename E>
 struct transpose_expression
     : public matrix_expression<transpose_expression<E> > {
+ private:
+  using self_type = transpose_expression<E>;
+
+ public:
   // public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
@@ -37,6 +41,10 @@ struct transpose_expression
     return shape_type(num_rows(), num_cols());
   }
   inline size_type size() const { return e.size(); }
+
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
+  }
 
   // Iterator.
 

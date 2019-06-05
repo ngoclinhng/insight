@@ -23,6 +23,10 @@ template<
   >
 struct matrix_mul_vector
     : public vector_expression<matrix_mul_vector<M, V> > {
+ private:
+  using self_type = matrix_mul_vector<M, V>;
+
+ public:
   // public types.
   using value_type = typename M::value_type;
   using size_type = typename M::size_type;
@@ -48,6 +52,10 @@ struct matrix_mul_vector
     return shape_type(num_rows(), num_cols());
   }
   inline size_type size() const { return num_rows() * num_cols(); }
+
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
+  }
 
   // Iterator.
 
@@ -147,7 +155,7 @@ struct matrix_mul_vector
 template<typename M, typename V>
 inline
 matrix_mul_vector<M, V>
-mat_mul(const matrix_expression<M>& me, const vector_expression<V>& ve) {
+matmul(const matrix_expression<M>& me, const vector_expression<V>& ve) {
   return matrix_mul_vector<M, V>(me.self(), ve.self());
 }
 

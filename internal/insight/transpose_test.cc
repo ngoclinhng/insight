@@ -14,7 +14,7 @@ using ::testing::ElementsAre;
 
 TEST(transpose_expression, transpose_a_matrix) {
   matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
-  matrix<double> B = transpose(A);
+  matrix<double> B = A.t();
 
   EXPECT_EQ(B.num_rows(), 3);
   EXPECT_EQ(B.num_cols(), 2);
@@ -47,6 +47,30 @@ TEST(transpose_expression, transpose_an_expression) {
   EXPECT_THAT(C, ElementsAre(11, 33, 55, 22, 44, 66));
 }
 
-// mat_mul(B, A.col_at(0).t());
+TEST(transpose_expression, transposed_matrix_mul_vector) {
+  matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
+  vector<double> x = {-2, 1};
 
+  vector<double> y = matmul(A.t(), x);
+
+  EXPECT_EQ(y.num_rows(), 3);
+  EXPECT_EQ(y.num_cols(), 1);
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_THAT(y, ElementsAre(2, 1, 0));
+
+  vector<double> z = {10, 20, 30};
+  z += matmul(A.t(), x);
+
+  EXPECT_EQ(z.num_rows(), 3);
+  EXPECT_EQ(z.num_cols(), 1);
+  EXPECT_EQ(z.size(), 3);
+  EXPECT_THAT(z, ElementsAre(12, 21, 30));
+
+  z -= matmul(A.t(), x);
+
+  EXPECT_EQ(z.num_rows(), 3);
+  EXPECT_EQ(z.num_cols(), 1);
+  EXPECT_EQ(z.size(), 3);
+  EXPECT_THAT(z, ElementsAre(10, 20, 30));
+}
 }  // namespace insight

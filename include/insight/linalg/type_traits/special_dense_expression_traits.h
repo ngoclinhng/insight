@@ -12,6 +12,7 @@
 
 #include "insight/linalg/arithmetic_expression.h"
 #include "insight/linalg/matrix_mul_vector.h"
+#include "insight/linalg/transpose_expression.h"
 
 namespace insight {
 
@@ -197,6 +198,23 @@ struct is_Ax<matrix_mul_vector<M, V> >
                               std::true_type,
                               std::false_type>::type{};
 
+// 11: is_Atx: Is a particular matrix-vector multiplication of the form
+//     `A' * x` where A is a floating-point, dense matrix and `x` is a
+//      floating-point, dense vector?
+
+template<typename E> struct is_Atx: public std::false_type{};
+template<typename E> struct is_Atx<const E>: public is_Atx<E>{};
+template<typename E> struct is_Atx<volatile E>: public is_Atx<E>{};
+template<typename E> struct is_Atx<volatile const E>: public is_Atx<E>{};
+
+template<typename M, typename V>
+struct is_Atx<matrix_mul_vector<transpose_expression<M>, V> >
+    : public std::conditional<is_dense_matrix<M>::value &&
+                              is_dense_vector<V>::value &&
+                              std::is_floating_point<typename V::value_type>::value,  // NOLINT
+                              std::true_type,
+                              std::false_type>::type{};
+
 // Final: Is E a special dense expression?
 
 template<typename E> struct is_special_dense_expression
@@ -209,7 +227,8 @@ template<typename E> struct is_special_dense_expression
                               is_sqrt_x<E>::value ||
                               is_exp_x<E>::value ||
                               is_log_x<E>::value ||
-                              is_Ax<E>::value,
+                              is_Ax<E>::value ||
+                              is_Atx<E>::value,
                               std::true_type,
                               std::false_type>::type{};
 

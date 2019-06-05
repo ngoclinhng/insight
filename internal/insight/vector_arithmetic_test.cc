@@ -3,6 +3,7 @@
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
 #include "insight/linalg/vector.h"
+#include "insight/linalg/matrix.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -503,6 +504,11 @@ TEST(vector_arithmetic, int_vector_elemwise_division) {
   EXPECT_EQ(z.shape().first, 3);
   EXPECT_EQ(z.shape().second, 1);
   EXPECT_THAT(z, ElementsAre(21, 22, 23));
+}
+
+TEST(vector_arithmetic, matrix_row_view) {
+  matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
+  vector<double> x = {10, 20, 30};
 }
 
 // unary expression test

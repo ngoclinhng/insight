@@ -463,5 +463,66 @@ struct evaluator<E, typename std::enable_if<is_Ax<E>::value,
   }
 };
 
+// 10. A'x.
+//
+// Evaluate a matrix-vector multiplication expression of the form `A' * x`,
+// where `A` is a floating-point, dense matrix and `x` is a floating-point,
+// dense vector, and `A'` is the transposed version of `A`.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_Atx<E>::value,
+                                            void>::type> {
+  using value_type = typename E::value_type;
+
+  // y = A'x.
+  inline static void assign(const E& expr, value_type* buffer) {
+    // TODO(Linh): Do we really need to fill buffer with all zeros first?
+    std::fill(buffer, buffer + expr.size(), value_type()/*zero*/);
+    internal::insight_gemv(CblasTrans,
+                           expr.m.e.num_rows(),
+                           expr.m.e.num_cols(),
+                           value_type(1.0),
+                           expr.m.e.begin(),
+                           expr.v.begin(),
+                           value_type()/*zero*/,
+                           buffer);
+  }
+
+  // y += A'x.
+  inline static void add(const E& expr, value_type* buffer) {
+    internal::insight_gemv(CblasTrans,
+                           expr.m.e.num_rows(),
+                           expr.m.e.num_cols(),
+                           value_type(1.0),
+                           expr.m.e.begin(),
+                           expr.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y -= A'x
+  inline static void sub(const E& expr, value_type* buffer) {
+    internal::insight_gemv(CblasTrans,
+                           expr.m.e.num_rows(),
+                           expr.m.e.num_cols(),
+                           value_type(-1.0),
+                           expr.m.e.begin(),
+                           expr.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y *= A'x
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // y /= A'x
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_EVALUATOR_H_

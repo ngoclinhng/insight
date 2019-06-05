@@ -27,6 +27,9 @@ struct matrix_expression {
   const Derived& self() const { return static_cast<const Derived&>(*this); }
 };
 
+// Forward declaration for row_view.
+template<typename M> struct row_view;
+
 // Binary expression.
 
 // Element-wise arithmetic between two generic vector/matrix expressions.
@@ -36,6 +39,10 @@ struct binary_expression : public std::conditional<
   vector_expression< binary_expression<E1, E2, F> >,
   matrix_expression< binary_expression<E1, E2, F> >
   >::type {
+ private:
+  using self_type = binary_expression<E1, E2, F>;
+
+ public:
   // public types.
   using value_type = typename E1::value_type;
   using size_type = typename E1::size_type;
@@ -63,6 +70,10 @@ struct binary_expression : public std::conditional<
   inline size_type num_cols() const { return e1.num_cols(); }
   inline shape_type shape() const { return e1.shape(); }
   inline size_type size() const { return e1.size(); }
+
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
+  }
 
   // Iterator.
 
@@ -160,6 +171,10 @@ struct binary_expression<E, typename E::value_type, F>
   vector_expression<binary_expression<E, typename E::value_type, F> >,
   matrix_expression<binary_expression<E, typename E::value_type, F> >
   >::type {
+ private:
+  using self_type = binary_expression<E, typename E::value_type, F>;
+
+ public:
   // public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
@@ -185,6 +200,10 @@ struct binary_expression<E, typename E::value_type, F>
   inline size_type num_cols() const { return e.num_cols(); }
   inline shape_type shape() const { return e.shape(); }
   inline size_type size() const { return e.size(); }
+
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
+  }
 
   // Iterator.
 
@@ -279,6 +298,10 @@ struct binary_expression<typename E::value_type, E, F>
   vector_expression<binary_expression<typename E::value_type, E, F> >,
   matrix_expression<binary_expression<typename E::value_type, E, F> >
   >::type {
+ private:
+  using self_type = binary_expression<typename E::value_type, E, F>;
+
+ public:
   // Public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
@@ -304,8 +327,8 @@ struct binary_expression<typename E::value_type, E, F>
   inline shape_type shape() const { return e.shape(); }
   inline size_type size() const { return e.size(); }
 
-  inline value_type operator[](size_type i) const {
-    return f(scalar, e[i]);
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
   }
 
   // Iterator.
@@ -400,6 +423,10 @@ struct unary_expression
                               vector_expression<unary_expression<E, F> >,
                               matrix_expression<unary_expression<E, F> >
                               >::type {
+ private:
+  using self_type = unary_expression<E, F>;
+
+ public:
   // public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
@@ -422,6 +449,10 @@ struct unary_expression
   inline size_type num_cols() const { return e.num_cols(); }
   inline shape_type shape() const { return e.shape(); }
   inline size_type size() const { return e.size(); }
+
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
+  }
 
   // Iterator.
 
