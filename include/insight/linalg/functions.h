@@ -7,6 +7,8 @@
 
 #include <cmath>
 
+#include "glog/logging.h"
+
 namespace insight {
 
 // Forward declarations
