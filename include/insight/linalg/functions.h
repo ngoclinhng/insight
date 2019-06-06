@@ -10,10 +10,14 @@
 namespace insight {
 
 // Forward declarations
+// TODO(Linh): Should we forward declaration or using include instead?
 template<typename E, typename F> struct unary_expression;
 template<typename Derived> struct vector_expression;
 template<typename Derived> struct matrix_expression;
 template<typename E> struct transpose_expression;
+
+// TODO(Linh): This is too odd. See `dot_expression.h` file for
+// reference.
 template<typename M, typename V, typename Enable>
 struct dot_expression;
 
@@ -37,7 +41,7 @@ struct log {
 }  // namespace unary_functor
 
 
-// Unary expression of a generic vector expression.
+// Transcendental functions on vectors.
 
 template<typename E>
 inline
@@ -69,7 +73,7 @@ log(const vector_expression<E>& e) {
     >(e.self(), unary_functor::log<typename E::value_type>());
 }
 
-// Unary expression of a generic matrix expression.
+// Transcendental functions on matrices.
 
 template<typename E>
 inline
@@ -127,6 +131,16 @@ dot(const matrix_expression<M>& me, const vector_expression<V>& ve) {
   CHECK_EQ(me.self().num_cols(), ve.self().num_rows())
       << "mismatched dimensions for matrix-vector multiplication";
   return dot_expression<M, V, void>(me.self(), ve.self());
+}
+
+// matrix-matrix multiplication.
+template<typename M1, typename M2>
+inline
+dot_expression<M1, M2, void>
+dot(const matrix_expression<M1>& m1, const matrix_expression<M2>& m2) {
+  CHECK_EQ(m1.self().num_cols(), m2.self().num_rows())
+      << "mismatched dimensions for matrix-matrix multiplication";
+  return dot_expression<M1, M2, void>(m1.self(), m2.self());
 }
 
 }  // namespace insight

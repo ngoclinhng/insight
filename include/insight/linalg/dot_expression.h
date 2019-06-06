@@ -20,6 +20,7 @@ template<typename E> struct transpose_expression;
 template<typename M, typename V, typename Enable = void>
 struct dot_expression;
 
+// matrix-vector multiplication.
 template<typename M, typename V>
 struct dot_expression<
   M,
@@ -164,6 +165,7 @@ struct dot_expression<
   inline const_iterator end() const { return const_iterator(*this, size()); }
   inline const_iterator cend() const  {return end(); }
 };
+
 
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_DOT_EXPRESSION_H_

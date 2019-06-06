@@ -463,7 +463,7 @@ struct evaluator<E, typename std::enable_if<is_Ax<E>::value,
   }
 };
 
-// 10. A'x.
+// 11. A'x.
 //
 // Evaluate a matrix-vector multiplication expression of the form `A' * x`,
 // where `A` is a floating-point, dense matrix and `x` is a floating-point,
@@ -524,5 +524,7 @@ struct evaluator<E, typename std::enable_if<is_Atx<E>::value,
   }
 };
 
+// 12. a * (Ax) or (Ax) * a is_aAx
+// 13. a * (A'x) or (A'x) * a is_aAtx
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_EVALUATOR_H_

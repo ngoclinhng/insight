@@ -119,4 +119,30 @@ TEST(matrix_vector_multiplication,
   EXPECT_THAT(x, ElementsAre(3, 5, 7));
 }
 
+TEST(matrix_vector_multiplication,
+     transposed_float_dense_matrix_and_vector) {
+  matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
+  vector<double> x = {-1, 2};
+
+  vector<double> y = dot(A.t(), x);
+
+  EXPECT_EQ(y.num_rows(), 3);
+  EXPECT_EQ(y.num_cols(), 1);
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_THAT(y, ElementsAre(7, 8, 9));
+}
+
+TEST(matrix_vector_multiplication,
+     transposed_int_dense_matrix_and_vector) {
+  matrix<int> A = {{1, 2, 3}, {4, 5, 6}};
+  vector<int> x = {-1, 2};
+
+  vector<int> y = dot(A.t(), x);
+
+  EXPECT_EQ(y.num_rows(), 3);
+  EXPECT_EQ(y.num_cols(), 1);
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_THAT(y, ElementsAre(7, 8, 9));
+}
+
 }  // namespace insight
