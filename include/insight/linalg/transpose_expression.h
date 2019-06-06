@@ -5,9 +5,21 @@
 #ifndef INCLUDE_INSIGHT_LINALG_TRANSPOSE_EXPRESSION_H_
 #define INCLUDE_INSIGHT_LINALG_TRANSPOSE_EXPRESSION_H_
 
-#include "insight/linalg/arithmetic_expression.h"
+#include <iterator>
 
 namespace insight {
+
+// Forward declaration of matrix_expression
+template<typename Derived> struct matrix_expression;
+
+// Forward declaration of vector_expression
+template<typename Derived> struct vector_expression;
+
+// Forward declaration for row_view.
+template<typename M> struct row_view;
+
+// Forward declaration for col_view.
+template<typename M> struct col_view;
 
 // Transpose a generic matrix/vector expression.
 template<typename E>

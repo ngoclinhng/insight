@@ -4,7 +4,6 @@
 
 #include "insight/linalg/vector.h"
 #include "insight/linalg/matrix.h"
-#include "insight/linalg/matrix_mul_vector.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
