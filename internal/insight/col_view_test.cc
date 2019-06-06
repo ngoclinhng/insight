@@ -48,6 +48,22 @@ TEST(col_view, of_a_dense_matrix_expression) {
   matrix<double> B = {{10, 20}, {30, 40}, {50, 60}};
 
   auto e = A + B;
+
+  EXPECT_THAT(e.num_rows(), 3);
+  EXPECT_THAT(e.num_cols(), 2);
+  EXPECT_THAT(e.size(), 6);
   EXPECT_THAT(e.col_at(0), ElementsAre(11, 33, 55));
+  EXPECT_THAT(e.col_at(1), ElementsAre(22, 44, 66));
+}
+
+TEST(col_view, of_a_dense_matrix_transpose) {
+  matrix<double> m = {{10, 20, 30}, {40, 50, 60}};
+  auto e = m.t();
+
+  EXPECT_THAT(e.num_rows(), 3);
+  EXPECT_THAT(e.num_cols(), 2);
+  EXPECT_THAT(e.size(), 6);
+  EXPECT_THAT(e.col_at(0), ElementsAre(10, 20, 30));
+  EXPECT_THAT(e.col_at(1), ElementsAre(40, 50, 60));
 }
 }  // namespace insight

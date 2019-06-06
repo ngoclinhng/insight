@@ -15,7 +15,12 @@ namespace insight {
 // Forward declaration for matrix expression.
 template<typename Derived> class matrix_expression;
 
-// Row view of a row.
+// Forwadr declaration for transpose expression.
+template<typename E> class transpose_expression;
+
+// Row view of a generic matrix expression.
+// TODO(Linh): Should we restrict `M` to be only matrix expression but not
+// vector expression.
 template<typename M>
 struct row_view : public matrix_expression<row_view<M> > {
  private:
@@ -26,11 +31,15 @@ struct row_view : public matrix_expression<row_view<M> > {
   using value_type = typename M::value_type;
   using size_type = typename M::size_type;
   using difference_type = typename M::difference_type;
-  using reference = value_type&;
-  using const_reference = const value_type&;
+  using reference = typename M::reference;
+  using const_reference = typename M::const_reference;
   using pointer = typename M::pointer;
   using const_pointer = typename M::const_pointer;
   using shape_type = typename M::shape_type;
+
+  // TODO(Linh): Should we change this to be true, since row_view can be
+  // mathematically viewd as a row vector?
+  static constexpr bool is_vector = false;
 
   row_view(M* m, size_type row_index)
       : row_index_(row_index),
@@ -47,6 +56,11 @@ struct row_view : public matrix_expression<row_view<M> > {
   inline size_type size() const { return num_rows() * num_cols(); }
   inline shape_type shape() const {
     return shape_type(num_rows(), num_cols());
+  }
+
+  // Transpose of this expression.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
   }
 
   // Iterators.

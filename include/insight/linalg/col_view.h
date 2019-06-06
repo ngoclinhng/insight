@@ -13,9 +13,14 @@
 namespace insight {
 
 // Forward declaration for vector expression.
-template<typename Derived> class vector_expression;
+template<typename Derived> struct vector_expression;
+
+// Forward declaration for transpose expression.
+template<typename E> struct transpose_expression;
 
 // Row view of a row.
+// TODO(Linh): Should we restrict `M` to be only matrix expression but not
+// vector expression.
 template<typename M>
 struct col_view : public vector_expression<col_view<M> > {
  private:
@@ -32,6 +37,8 @@ struct col_view : public vector_expression<col_view<M> > {
   using const_pointer = typename M::const_pointer;
   using shape_type = typename M::shape_type;
 
+  static constexpr bool is_vector = true;
+
   col_view(M* m, size_type col_index) : m_(m), col_index_(col_index) {
     CHECK_LT(col_index, m->num_cols()) << "Invalid column index";
   }
@@ -41,6 +48,11 @@ struct col_view : public vector_expression<col_view<M> > {
   inline size_type size() const { return num_rows() * num_cols(); }
   inline shape_type shape() const {
     return shape_type(num_rows(), num_cols());
+  }
+
+  // Transpose of this expression.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
   }
 
   class const_iterator;

@@ -30,8 +30,11 @@ struct matrix_expression {
 // Forward declaration for row_view.
 template<typename M> struct row_view;
 
-// Foreard declaration for col_view.
+// Forward declaration for col_view.
 template<typename M> struct col_view;
+
+// Forward declaration for transpose expression.
+template<typename E> struct transpose_expression;
 
 // Binary expression.
 
@@ -80,6 +83,11 @@ struct binary_expression : public std::conditional<
 
   inline col_view<self_type> col_at(size_type col_index) {
     return col_view<self_type>(this, col_index);
+  }
+
+  // Transpose of this expression.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
   }
 
   // Iterator.
@@ -216,6 +224,11 @@ struct binary_expression<E, typename E::value_type, F>
     return col_view<self_type>(this, col_index);
   }
 
+  // Transpose of this expression.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
+  }
+
   // Iterator.
 
   class const_iterator;
@@ -346,6 +359,11 @@ struct binary_expression<typename E::value_type, E, F>
     return col_view<self_type>(this, col_index);
   }
 
+  // Transpose of this expression.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
+  }
+
   // Iterator.
 
   class const_iterator;
@@ -471,6 +489,11 @@ struct unary_expression
 
   inline col_view<self_type> col_at(size_type col_index) {
     return col_view<self_type>(this, col_index);
+  }
+
+  // Transpose of this expression.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
   }
 
   // Iterator.

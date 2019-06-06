@@ -107,42 +107,16 @@ TEST(matmul, float_alpha_A_x) {
   EXPECT_THAT(y, ElementsAre(3, 5, 7));
 }
 
-// We only optimize for things that make sense.
-//
-// a * X, X * a -> is_sX.
-// X/a          -> is_X_div_alpha
-//
-// X + Y -> is_X_plus_Y.
-// X - Y -> is_X_minus_Y.  ===> is_X_op_Y.
-// X * Y -> is_X_times_Y.
-// X / Y -> is_X_div_Y.
-//
-// aX + Y -> is_alpha_X_plus_Y
-// Y + aX -> is_Y_plus_alpha_X.
-//
-// aX - Y -> is_aX_minus_Y
-// Y - aX -> is_Y_minus_aX.
-//
-// aX + bY -> is_aX_plus_bY
-// aX - bY -> is_aX_minus_bY.
-//
-// Au -> is_Au. is_aX
-// a * Ax, Ax * a
-//
-// Ax + y -> is_Ax_plus_y.
-// y + Ax -> is_y_plus_Ax.
-//
-// Ax - y -> is_
-// y - Ax                  => is_gemv
-//
-// a * Ax + y
-// y + a * Ax
-//
-// a * Ax - y
-// y - a * Ax
-//
-// a * Ax + b * y
-// b * y + a * Ax
+TEST(matmul, float_dense_matrix_with_row_view_transpose) {
+  matrix<double> A = {{1, 2}, {3, 4}, {5, 6}};
+  matrix<double> B = {{-1, 2}, {0, 5}};
 
+  vector<double> x = matmul(A, B.row_at(0).t());
+
+  EXPECT_EQ(x.num_rows(), 3);
+  EXPECT_EQ(x.num_cols(), 1);
+  EXPECT_EQ(x.size(), 3);
+  EXPECT_THAT(x, ElementsAre(3, 5, 7));
+}
 
 }  // namespace insight

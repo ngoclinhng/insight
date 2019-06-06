@@ -42,9 +42,7 @@ struct matrix_mul_vector
   const M& m;
   const V& v;
 
-  matrix_mul_vector(const M& m, const V& v) : m(m), v(v) {
-    CHECK_EQ(m.num_cols(), v.num_rows());
-  }
+  matrix_mul_vector(const M& m, const V& v) : m(m), v(v) {}
 
   inline size_type num_rows() const { return m.num_rows(); }
   inline size_type num_cols() const { return /*one*/v.num_cols(); }
@@ -59,6 +57,11 @@ struct matrix_mul_vector
 
   inline col_view<self_type> col_at(size_type col_index) {
     return col_view<self_type>(this, col_index);
+  }
+
+  // Transpose of this expression.
+  inline transpose_expression<self_type> t() const {
+    return transpose_expression<self_type>(*this);
   }
 
   // Iterator.
@@ -160,6 +163,8 @@ template<typename M, typename V>
 inline
 matrix_mul_vector<M, V>
 matmul(const matrix_expression<M>& me, const vector_expression<V>& ve) {
+  CHECK_EQ(me.self().num_cols(), ve.self().num_rows())
+      << "mismatched dimensions for matrix-vector multiplication";
   return matrix_mul_vector<M, V>(me.self(), ve.self());
 }
 

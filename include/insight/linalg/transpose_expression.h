@@ -9,6 +9,7 @@
 
 namespace insight {
 
+// Transpose a generic matrix/vector expression.
 template<typename E>
 struct transpose_expression
     : public matrix_expression<transpose_expression<E> > {
@@ -153,6 +154,63 @@ struct transpose_expression
   inline const_iterator cbegin() const { return begin(); }
   inline const_iterator end() const { return const_iterator(*this, size()); }
   inline const_iterator cend() const  {return end(); }
+};
+
+// Forward declaration of matrix class.
+template<typename T, typename A> class matrix;
+
+// Transpose of a row_view.
+// TODO(Linh): Give some explanation for Why on earth you treated this case
+// separately in the first place.
+template<typename T, typename A>
+struct transpose_expression<row_view<matrix<T, A> > >
+    : public vector_expression<transpose_expression<row_view<matrix<T, A> > >
+                               > {
+ private:
+  using row_view_type = row_view<matrix<T, A> >;
+  using self_type = transpose_expression<row_view<matrix<T, A> > >;
+
+ public:
+    // public types.
+  using value_type = typename row_view_type::value_type;
+  using size_type = typename row_view_type::size_type;
+  using difference_type = typename row_view_type::difference_type;
+  using const_reference = typename row_view_type::const_reference;
+  using reference = typename row_view_type::reference;
+  using const_pointer = typename row_view_type::const_pointer;
+  using pointer = typename row_view_type::pointer;
+  using shape_type = typename row_view_type::shape_type;
+
+  static constexpr bool is_vector = true;
+
+  const row_view_type& rw;
+
+  explicit transpose_expression(const row_view_type& rw) : rw(rw) {}
+
+  inline size_type num_rows() const { return rw.num_cols(); }
+  inline size_type num_cols() const { return rw.num_rows(); }
+  inline shape_type shape() const {
+    return shape_type(num_rows(), num_cols());
+  }
+  inline size_type size() const { return rw.size(); }
+
+  inline row_view<self_type> row_at(size_type row_index) {
+    return row_view<self_type>(this, row_index);
+  }
+
+  inline col_view<self_type> col_at(size_type col_index) {
+    return col_view<self_type>(this, col_index);
+  }
+
+  // Iterators.
+  using iterator = typename row_view_type::const_iterator;
+  using const_iterator = typename row_view_type::const_iterator;
+
+  inline const_iterator begin() const { return rw.cbegin(); }
+  inline const_iterator cbegin() const { return rw.cbegin(); }
+
+  inline const_iterator end() const { return rw.cend(); }
+  inline const_iterator cend() const { return rw.cend(); }
 };
 
 template<typename E>

@@ -27,7 +27,7 @@ TEST(transpose_expression, transpose_a_matrix) {
 
 TEST(transpose_expression, transpose_a_vector) {
   vector<double> x = {1, 2, 3};
-  matrix<double> y = transpose(x);
+  matrix<double> y = x.t();
 
   EXPECT_EQ(y.num_rows(), 1);
   EXPECT_EQ(y.num_cols(), 3);
@@ -39,7 +39,7 @@ TEST(transpose_expression, transpose_a_vector) {
 TEST(transpose_expression, transpose_an_expression) {
   matrix<double> A = {{1, 2}, {3, 4}, {5, 6}};
   matrix<double> B = {{10, 20}, {30, 40}, {50, 60}};
-  matrix<double> C = transpose(A + B);
+  matrix<double> C = (A + B).t();
 
   EXPECT_EQ(C.num_rows(), 2);
   EXPECT_EQ(C.num_cols(), 3);
@@ -72,5 +72,16 @@ TEST(transpose_expression, transposed_matrix_mul_vector) {
   EXPECT_EQ(z.num_cols(), 1);
   EXPECT_EQ(z.size(), 3);
   EXPECT_THAT(z, ElementsAre(10, 20, 30));
+}
+
+TEST(transpose, of_a_row_view_of_a_dense_matrix) {
+  matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
+  auto e = m.row_at(0);
+  auto et = e.t();
+
+  EXPECT_EQ(et.num_rows(), 3);
+  EXPECT_EQ(et.num_cols(), 1);
+  EXPECT_EQ(et.size(), 3);
+  EXPECT_THAT(et, ElementsAre(1, 2, 3));
 }
 }  // namespace insight
