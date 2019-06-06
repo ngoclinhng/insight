@@ -13,7 +13,7 @@
 #include "insight/linalg/arithmetic_expression.h"
 #include "insight/linalg/dot_expression.h"
 #include "insight/linalg/transpose_expression.h"
-#include "insight/linalg/functions.h"
+#include "insight/linalg/unary_functor.h"
 
 namespace insight {
 
@@ -216,6 +216,52 @@ struct is_Atx<dot_expression<transpose_expression<M>, V> >
                               std::true_type,
                               std::false_type>::type{};
 
+// 12: is_aAx: Is a particular binary expression of the form:
+//     `a * Ax` where A is a floating-point, dense matrix and `x` is a
+//      floating-point, dense vector, and `a` is a floating-point scalar?
+
+template<typename E> struct is_aAx: public std::false_type{};
+template<typename E> struct is_aAx<const E>: public is_aAx<E>{};
+template<typename E> struct is_aAx<volatile E>: public is_aAx<E>{};
+template<typename E> struct is_aAx<volatile const E>: public is_aAx<E>{};
+
+template<typename E, typename T>
+struct is_aAx<binary_expression<E, T, std::multiplies<T> > >
+    : public std::conditional<std::is_floating_point<T>::value &&
+                              is_Ax<E>::value,
+                              std::true_type,
+                              std::false_type>::type{};
+
+template<typename E, typename T>
+struct is_aAx<binary_expression<T, E, std::multiplies<T> > >
+    : public std::conditional<std::is_floating_point<T>::value &&
+                              is_Ax<E>::value,
+                              std::true_type,
+                              std::false_type>::type{};
+
+// 13: is_aAtx: Is a particular binary expression of the form:
+//     `a * A'x` where A is a floating-point, dense matrix and `x` is a
+//      floating-point, dense vector, and `a` is a floating-point scalar?
+
+template<typename E> struct is_aAtx: public std::false_type{};
+template<typename E> struct is_aAtx<const E>: public is_aAtx<E>{};
+template<typename E> struct is_aAtx<volatile E>: public is_aAtx<E>{};
+template<typename E> struct is_aAtx<volatile const E>: public is_aAtx<E>{};
+
+template<typename E, typename T>
+struct is_aAtx<binary_expression<E, T, std::multiplies<T> > >
+    : public std::conditional<std::is_floating_point<T>::value &&
+                              is_Atx<E>::value,
+                              std::true_type,
+                              std::false_type>::type{};
+
+template<typename E, typename T>
+struct is_aAtx<binary_expression<T, E, std::multiplies<T> > >
+    : public std::conditional<std::is_floating_point<T>::value &&
+                              is_Atx<E>::value,
+                              std::true_type,
+                              std::false_type>::type{};
+
 // Final: Is E a special dense expression?
 
 template<typename E> struct is_special_dense_expression
@@ -229,7 +275,9 @@ template<typename E> struct is_special_dense_expression
                               is_exp_x<E>::value ||
                               is_log_x<E>::value ||
                               is_Ax<E>::value ||
-                              is_Atx<E>::value,
+                              is_Atx<E>::value ||
+                              is_aAx<E>::value ||
+                              is_aAtx<E>::value,
                               std::true_type,
                               std::false_type>::type{};
 

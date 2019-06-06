@@ -7,6 +7,7 @@
 
 #include <cmath>
 
+#include "insight/linalg/unary_functor.h"
 #include "glog/logging.h"
 
 namespace insight {
@@ -22,25 +23,6 @@ template<typename E> struct transpose_expression;
 // reference.
 template<typename M, typename V, typename Enable>
 struct dot_expression;
-
-// Unary functors.
-namespace unary_functor {
-
-template<typename T>
-struct sqrt {
-  inline T operator()(T value) const { return std::sqrt(value); }
-};
-
-template<typename T>
-struct exp {
-  inline T operator()(T value) const { return std::exp(value); }
-};
-
-template<typename T>
-struct log {
-  inline T operator()(T value) const { return std::log(value); }
-};
-}  // namespace unary_functor
 
 
 // Transcendental functions on vectors.
@@ -125,7 +107,7 @@ transpose_expression<E> transpose(const vector_expression<E>& expr) {
 
 // dot.
 
-// matrix-vector multiplication.
+// generic matrix-vector multiplication.
 template<typename M, typename V>
 inline
 dot_expression<M, V, void>
@@ -135,7 +117,7 @@ dot(const matrix_expression<M>& me, const vector_expression<V>& ve) {
   return dot_expression<M, V, void>(me.self(), ve.self());
 }
 
-// matrix-matrix multiplication.
+// generic matrix-matrix multiplication.
 template<typename M1, typename M2>
 inline
 dot_expression<M1, M2, void>

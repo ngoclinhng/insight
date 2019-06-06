@@ -2,9 +2,9 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#include "insight/linalg/transpose_expression.h"
 #include "insight/linalg/matrix.h"
 #include "insight/linalg/vector.h"
+#include "insight/linalg/functions.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"

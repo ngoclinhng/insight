@@ -524,6 +524,127 @@ struct evaluator<E, typename std::enable_if<is_Atx<E>::value,
   }
 };
 
+// 12. a * Ax.
+//
+// Evaluate a matrix-vector multiplication expression of the form
+// `a * A * x`, where `A` is a floating-point, dense matrix and `x` is a
+// floating-point, dense vector, and `a` is a floating-point scalar.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_aAx<E>::value,
+                                            void>::type> {
+  using value_type = typename E::value_type;
+
+  // y = a * Ax.
+  inline static void assign(const E& expr, value_type* buffer) {
+    // TODO(Linh): Do we really need to fill buffer with all zeros first?
+    std::fill(buffer, buffer + expr.size(), value_type()/*zero*/);
+    internal::insight_gemv(CblasNoTrans,
+                           expr.e.m.num_rows(),
+                           expr.e.m.num_cols(),
+                           expr.scalar,
+                           expr.e.m.begin(),
+                           expr.e.v.begin(),
+                           value_type()/*zero*/,
+                           buffer);
+  }
+
+  // y += a * Ax.
+  inline static void add(const E& expr, value_type* buffer) {
+    internal::insight_gemv(CblasNoTrans,
+                           expr.e.m.num_rows(),
+                           expr.e.m.num_cols(),
+                           expr.scalar,
+                           expr.e.m.begin(),
+                           expr.e.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y -= a * Ax.
+  inline static void sub(const E& expr, value_type* buffer) {
+    internal::insight_gemv(CblasNoTrans,
+                           expr.e.m.num_rows(),
+                           expr.e.m.num_cols(),
+                           -expr.scalar,
+                           expr.e.m.begin(),
+                           expr.e.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y *= a * Ax.
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // y /= a * Ax.
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// 13. a * A'x.
+//
+// Evaluate a matrix-vector multiplication expression of the form
+// `a * A' * x`, where `A` is a floating-point, dense matrix and `x` is a
+// floating-point, dense vector, and `a` is a floating-point scalar.
+template<typename E>
+struct evaluator<E, typename std::enable_if<is_aAtx<E>::value,
+                                            void>::type> {
+  using value_type = typename E::value_type;
+
+  // y = a * A'x.
+  inline static void assign(const E& expr, value_type* buffer) {
+    // TODO(Linh): Do we really need to fill buffer with all zeros first?
+    std::fill(buffer, buffer + expr.size(), value_type()/*zero*/);
+    internal::insight_gemv(CblasTrans,
+                           expr.e.m.e.num_rows(),
+                           expr.e.m.e.num_cols(),
+                           expr.scalar,
+                           expr.e.m.e.begin(),
+                           expr.e.v.begin(),
+                           value_type()/*zero*/,
+                           buffer);
+  }
+
+  // y += a * A'x.
+  inline static void add(const E& expr, value_type* buffer) {
+    internal::insight_gemv(CblasTrans,
+                           expr.e.m.e.num_rows(),
+                           expr.e.m.e.num_cols(),
+                           expr.scalar,
+                           expr.e.m.e.begin(),
+                           expr.e.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y -= a * A'x.
+  inline static void sub(const E& expr, value_type* buffer) {
+    internal::insight_gemv(CblasTrans,
+                           expr.e.m.e.num_rows(),
+                           expr.e.m.e.num_cols(),
+                           -expr.scalar,
+                           expr.e.m.e.begin(),
+                           expr.e.v.begin(),
+                           value_type(1.0),
+                           buffer);
+  }
+
+  // y *= a * A'x.
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // y /= a * A'x.
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
 // 12. a * (Ax) or (Ax) * a is_aAx
 // 13. a * (A'x) or (A'x) * a is_aAtx
 }  // namespace insight

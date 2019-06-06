@@ -3,6 +3,7 @@
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
 #include "insight/linalg/matrix.h"
+#include "insight/linalg/functions.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
