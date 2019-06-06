@@ -12,7 +12,7 @@ namespace insight {
 
 using ::testing::ElementsAre;
 
-TEST(dot, int_matrix_mul_vector) {
+TEST(matrix_vector_multiplication, int_matrix_mul_vector) {
   matrix<int> A = {{1, 2, 3}, {4, 5, 6}};
   matrix<int> B = {{0, 2, 4}, {6, 8, 10}};
   vector<int> x = {1, 2, 3};
@@ -39,7 +39,7 @@ TEST(dot, int_matrix_mul_vector) {
   EXPECT_THAT(y, ElementsAre(30, 84));
 }
 
-TEST(dot, float_matrix_mul_vector) {
+TEST(matrix_vector_multiplication, float_matrix_mul_vector) {
   matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
   matrix<double> B = {{0, 2, 4}, {6, 8, 10}};
   vector<double> x = {1, 2, 3};
@@ -94,7 +94,7 @@ TEST(dot, float_matrix_mul_vector) {
   EXPECT_THAT(y, ElementsAre(30, 84));
 }
 
-TEST(dot, float_alpha_A_x) {
+TEST(matrix_vector_multiplication, float_alpha_A_x) {
   matrix<double> A = {{1, 2}, {3, 4}, {5, 6}};
   vector<double> x = {-2, 4};
 
@@ -106,7 +106,8 @@ TEST(dot, float_alpha_A_x) {
   EXPECT_THAT(y, ElementsAre(3, 5, 7));
 }
 
-TEST(dot, float_dense_matrix_with_row_view_transpose) {
+TEST(matrix_vector_multiplication,
+     float_dense_matrix_with_row_view_transpose) {
   matrix<double> A = {{1, 2}, {3, 4}, {5, 6}};
   matrix<double> B = {{-1, 2}, {0, 5}};
 
