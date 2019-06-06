@@ -12,26 +12,26 @@ namespace insight {
 
 using ::testing::ElementsAre;
 
-TEST(matmul, int_matrix_mul_vector) {
+TEST(dot, int_matrix_mul_vector) {
   matrix<int> A = {{1, 2, 3}, {4, 5, 6}};
   matrix<int> B = {{0, 2, 4}, {6, 8, 10}};
   vector<int> x = {1, 2, 3};
 
-  vector<int> y = matmul(A, x);
+  vector<int> y = dot(A, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(14, 32));
 
-  y = matmul(A, x) + 1.0;
+  y = dot(A, x) + 1.0;
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(15, 33));
 
-  y = matmul(A + B, x);
+  y = dot(A + B, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
@@ -39,54 +39,54 @@ TEST(matmul, int_matrix_mul_vector) {
   EXPECT_THAT(y, ElementsAre(30, 84));
 }
 
-TEST(matmul, float_matrix_mul_vector) {
+TEST(dot, float_matrix_mul_vector) {
   matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
   matrix<double> B = {{0, 2, 4}, {6, 8, 10}};
   vector<double> x = {1, 2, 3};
 
-  vector<double> y = matmul(A, x);
+  vector<double> y = dot(A, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(14, 32));
 
-  y = matmul(A, x) + 1.0;
+  y = dot(A, x) + 1.0;
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(15, 33));
 
-  y = matmul(A + B, x);
+  y = dot(A + B, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(30, 84));
 
-  y += matmul(A, x);
+  y += dot(A, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(44, 116));
 
-  y -= matmul(A, x);
+  y -= dot(A, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(30, 84));
 
-  y *= matmul(A, x);
+  y *= dot(A, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
   EXPECT_EQ(y.size(), 2);
   EXPECT_THAT(y, ElementsAre(420, 2688));
 
-  y /= matmul(A, x);
+  y /= dot(A, x);
 
   EXPECT_EQ(y.num_rows(), 2);
   EXPECT_EQ(y.num_cols(), 1);
@@ -94,11 +94,11 @@ TEST(matmul, float_matrix_mul_vector) {
   EXPECT_THAT(y, ElementsAre(30, 84));
 }
 
-TEST(matmul, float_alpha_A_x) {
+TEST(dot, float_alpha_A_x) {
   matrix<double> A = {{1, 2}, {3, 4}, {5, 6}};
   vector<double> x = {-2, 4};
 
-  vector<double> y = 0.5 * matmul(A, x);
+  vector<double> y = 0.5 * dot(A, x);
 
   EXPECT_EQ(y.num_rows(), 3);
   EXPECT_EQ(y.num_cols(), 1);
@@ -106,11 +106,11 @@ TEST(matmul, float_alpha_A_x) {
   EXPECT_THAT(y, ElementsAre(3, 5, 7));
 }
 
-TEST(matmul, float_dense_matrix_with_row_view_transpose) {
+TEST(dot, float_dense_matrix_with_row_view_transpose) {
   matrix<double> A = {{1, 2}, {3, 4}, {5, 6}};
   matrix<double> B = {{-1, 2}, {0, 5}};
 
-  vector<double> x = matmul(A, B.row_at(0).t());
+  vector<double> x = dot(A, B.row_at(0).t());
 
   EXPECT_EQ(x.num_rows(), 3);
   EXPECT_EQ(x.num_cols(), 1);

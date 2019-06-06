@@ -51,7 +51,7 @@ TEST(transpose_expression, transposed_matrix_mul_vector) {
   matrix<double> A = {{1, 2, 3}, {4, 5, 6}};
   vector<double> x = {-2, 1};
 
-  vector<double> y = matmul(A.t(), x);
+  vector<double> y = dot(A.t(), x);
 
   EXPECT_EQ(y.num_rows(), 3);
   EXPECT_EQ(y.num_cols(), 1);
@@ -59,14 +59,14 @@ TEST(transpose_expression, transposed_matrix_mul_vector) {
   EXPECT_THAT(y, ElementsAre(2, 1, 0));
 
   vector<double> z = {10, 20, 30};
-  z += matmul(A.t(), x);
+  z += dot(A.t(), x);
 
   EXPECT_EQ(z.num_rows(), 3);
   EXPECT_EQ(z.num_cols(), 1);
   EXPECT_EQ(z.size(), 3);
   EXPECT_THAT(z, ElementsAre(12, 21, 30));
 
-  z -= matmul(A.t(), x);
+  z -= dot(A.t(), x);
 
   EXPECT_EQ(z.num_rows(), 3);
   EXPECT_EQ(z.num_cols(), 1);

@@ -11,8 +11,9 @@
 #include "insight/linalg/type_traits/is_dense_matrix.h"
 
 #include "insight/linalg/arithmetic_expression.h"
-#include "insight/linalg/matrix_mul_vector.h"
+#include "insight/linalg/dot_expression.h"
 #include "insight/linalg/transpose_expression.h"
+#include "insight/linalg/functions.h"
 
 namespace insight {
 
@@ -191,7 +192,7 @@ template<typename E> struct is_Ax<volatile E>: public is_Ax<E>{};
 template<typename E> struct is_Ax<volatile const E>: public is_Ax<E>{};
 
 template<typename M, typename V>
-struct is_Ax<matrix_mul_vector<M, V> >
+struct is_Ax<dot_expression<M, V> >
     : public std::conditional<is_dense_matrix<M>::value &&
                               is_dense_vector<V>::value &&
                               std::is_floating_point<typename V::value_type>::value,  // NOLINT
@@ -208,7 +209,7 @@ template<typename E> struct is_Atx<volatile E>: public is_Atx<E>{};
 template<typename E> struct is_Atx<volatile const E>: public is_Atx<E>{};
 
 template<typename M, typename V>
-struct is_Atx<matrix_mul_vector<transpose_expression<M>, V> >
+struct is_Atx<dot_expression<transpose_expression<M>, V> >
     : public std::conditional<is_dense_matrix<M>::value &&
                               is_dense_vector<V>::value &&
                               std::is_floating_point<typename V::value_type>::value,  // NOLINT

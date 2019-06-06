@@ -2,29 +2,36 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_LINALG_MATRIX_MUL_VECTOR_H_
-#define INCLUDE_INSIGHT_LINALG_MATRIX_MUL_VECTOR_H_
+#ifndef INCLUDE_INSIGHT_LINALG_DOT_EXPRESSION_H_
+#define INCLUDE_INSIGHT_LINALG_DOT_EXPRESSION_H_
 
 #include <iterator>
 #include <numeric>
 
-#include "insight/linalg/arithmetic_expression.h"
-
 namespace insight {
 
-template<
-  typename M,
-  typename V,
+// Forward declarations
+template<typename Derived> struct matrix_expression;
+template<typename Derived> struct vector_expression;
+template<typename E> struct row_view;
+template<typename E> struct col_view;
+template<typename E> struct transpose_expression;
+
+template<typename M, typename V, typename Enable = void>
+struct dot_expression;
+
+template<typename M, typename V>
+struct dot_expression<
+  M,
+  V,
   typename std::enable_if<
     std::is_base_of<matrix_expression<M>, M>::value &&
     std::is_base_of<vector_expression<V>, V>::value &&
     std::is_same<typename M::value_type, typename V::value_type>::value,
-    int>::type = 0
-  >
-struct matrix_mul_vector
-    : public vector_expression<matrix_mul_vector<M, V> > {
+                           void>::type
+  >: public vector_expression<dot_expression<M, V> > {
  private:
-  using self_type = matrix_mul_vector<M, V>;
+  using self_type = dot_expression<M, V>;
 
  public:
   // public types.
@@ -42,7 +49,7 @@ struct matrix_mul_vector
   const M& m;
   const V& v;
 
-  matrix_mul_vector(const M& m, const V& v) : m(m), v(v) {}
+  dot_expression(const M& m, const V& v) : m(m), v(v) {}
 
   inline size_type num_rows() const { return m.num_rows(); }
   inline size_type num_cols() const { return /*one*/v.num_cols(); }
@@ -76,10 +83,10 @@ struct matrix_mul_vector
 
    public:
     // public types.
-    using value_type = typename matrix_mul_vector::value_type;
-    using difference_type = typename matrix_mul_vector::difference_type;
-    using pointer = typename matrix_mul_vector::const_pointer;
-    using reference = typename matrix_mul_vector::const_reference;
+    using value_type = typename dot_expression::value_type;
+    using difference_type = typename dot_expression::difference_type;
+    using pointer = typename dot_expression::const_pointer;
+    using reference = typename dot_expression::const_reference;
     using iterator_category = std::input_iterator_tag;
 
     const_iterator() : row_index_(),
@@ -88,7 +95,7 @@ struct matrix_mul_vector
                        vend_(),
                        mit_() {}
 
-    const_iterator(const matrix_mul_vector& expr, size_type row_index)
+    const_iterator(const dot_expression& expr, size_type row_index)
         : row_index_(row_index),
           vsize_(expr.v.size()),
           vbegin_(expr.v.begin()),
@@ -158,15 +165,5 @@ struct matrix_mul_vector
   inline const_iterator cend() const  {return end(); }
 };
 
-// matrix-vector multiplication.
-template<typename M, typename V>
-inline
-matrix_mul_vector<M, V>
-matmul(const matrix_expression<M>& me, const vector_expression<V>& ve) {
-  CHECK_EQ(me.self().num_cols(), ve.self().num_rows())
-      << "mismatched dimensions for matrix-vector multiplication";
-  return matrix_mul_vector<M, V>(me.self(), ve.self());
-}
-
 }  // namespace insight
-#endif  // INCLUDE_INSIGHT_LINALG_MATRIX_MUL_VECTOR_H_
+#endif  // INCLUDE_INSIGHT_LINALG_DOT_EXPRESSION_H_

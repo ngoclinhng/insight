@@ -12,10 +12,8 @@
 
 namespace insight {
 
-// Forward declaration for vector expression.
+// Forward declarations
 template<typename Derived> struct vector_expression;
-
-// Forward declaration for transpose expression.
 template<typename E> struct transpose_expression;
 
 // Row view of a row.

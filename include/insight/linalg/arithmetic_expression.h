@@ -9,8 +9,6 @@
 #include <iterator>
 #include <type_traits>
 
-#include "insight/linalg/functional.h"
-
 #include "glog/logging.h"
 
 namespace insight {
@@ -27,13 +25,9 @@ struct matrix_expression {
   const Derived& self() const { return static_cast<const Derived&>(*this); }
 };
 
-// Forward declaration for row_view.
-template<typename M> struct row_view;
-
-// Forward declaration for col_view.
-template<typename M> struct col_view;
-
-// Forward declaration for transpose expression.
+// Forward declarations
+template<typename E> struct row_view;
+template<typename E> struct col_view;
 template<typename E> struct transpose_expression;
 
 // Binary expression.
@@ -935,73 +929,6 @@ operator/(typename E::value_type scalar, const matrix_expression<E>& e) {
     E,
     std::divides<typename E::value_type>
     >(scalar, e.self(), std::divides<typename E::value_type>());
-}
-
-// Unary functions.
-// TODO(Linh): should these be in here?
-
-// Unary expression of a generic vector expression.
-
-template<typename E>
-inline
-unary_expression<E, unary_functor::sqrt<typename E::value_type> >
-sqrt(const vector_expression<E>& e) {
-  return unary_expression<
-    E,
-    unary_functor::sqrt<typename E::value_type>
-    >(e.self(), unary_functor::sqrt<typename E::value_type>());
-}
-
-template<typename E>
-inline
-unary_expression<E, unary_functor::exp<typename E::value_type> >
-exp(const vector_expression<E>& e) {
-  return unary_expression<
-    E,
-    unary_functor::exp<typename E::value_type>
-    >(e.self(), unary_functor::exp<typename E::value_type>());
-}
-
-template<typename E>
-inline
-unary_expression<E, unary_functor::log<typename E::value_type> >
-log(const vector_expression<E>& e) {
-  return unary_expression<
-    E,
-    unary_functor::log<typename E::value_type>
-    >(e.self(), unary_functor::log<typename E::value_type>());
-}
-
-// Unary expression of a generic matrix expression.
-
-template<typename E>
-inline
-unary_expression<E, unary_functor::sqrt<typename E::value_type> >
-sqrt(const matrix_expression<E>& e) {
-  return unary_expression<
-    E,
-    unary_functor::sqrt<typename E::value_type>
-    >(e.self(), unary_functor::sqrt<typename E::value_type>());
-}
-
-template<typename E>
-inline
-unary_expression<E, unary_functor::exp<typename E::value_type> >
-exp(const matrix_expression<E>& e) {
-  return unary_expression<
-    E,
-    unary_functor::exp<typename E::value_type>
-    >(e.self(), unary_functor::exp<typename E::value_type>());
-}
-
-template<typename E>
-inline
-unary_expression<E, unary_functor::log<typename E::value_type> >
-log(const matrix_expression<E>& e) {
-  return unary_expression<
-    E,
-    unary_functor::log<typename E::value_type>
-    >(e.self(), unary_functor::log<typename E::value_type>());
 }
 
 }  // namespace insight

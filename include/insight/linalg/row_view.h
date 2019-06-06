@@ -12,10 +12,8 @@
 
 namespace insight {
 
-// Forward declaration for matrix expression.
+// Forward declarations
 template<typename Derived> class matrix_expression;
-
-// Forwadr declaration for transpose expression.
 template<typename E> class transpose_expression;
 
 // Row view of a generic matrix expression.

@@ -9,17 +9,11 @@
 
 namespace insight {
 
-// Forward declaration of matrix_expression
+// Forward declarations
 template<typename Derived> struct matrix_expression;
-
-// Forward declaration of vector_expression
 template<typename Derived> struct vector_expression;
-
-// Forward declaration for row_view.
-template<typename M> struct row_view;
-
-// Forward declaration for col_view.
-template<typename M> struct col_view;
+template<typename E> struct row_view;
+template<typename E> struct col_view;
 
 // Transpose a generic matrix/vector expression.
 template<typename E>
@@ -224,18 +218,6 @@ struct transpose_expression<row_view<matrix<T, A> > >
   inline const_iterator end() const { return rw.cend(); }
   inline const_iterator cend() const { return rw.cend(); }
 };
-
-template<typename E>
-inline
-transpose_expression<E> transpose(const matrix_expression<E>& expr) {
-  return transpose_expression<E>(expr.self());
-}
-
-template<typename E>
-inline
-transpose_expression<E> transpose(const vector_expression<E>& expr) {
-  return transpose_expression<E>(expr.self());
-}
 
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_TRANSPOSE_EXPRESSION_H_
