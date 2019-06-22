@@ -2,17 +2,20 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_LINALG_ARITHMETIC_EXPRESSION_H_
-#define INCLUDE_INSIGHT_LINALG_ARITHMETIC_EXPRESSION_H_
+#ifndef INCLUDE_INSIGHT_LINALG_DETAIL_ARITHMETIC_EXPRESSION_H_
+#define INCLUDE_INSIGHT_LINALG_DETAIL_ARITHMETIC_EXPRESSION_H_
 
 #include <functional>
 #include <iterator>
 #include <type_traits>
 
+#include "insight/internal/unary_transform_iterator.h"
+#include "insight/internal/binary_transform_iterator.h"
+
 #include "glog/logging.h"
 
 namespace insight {
-
+namespace linalg_detail {
 // Base class for all vector expressions.
 template<typename Derived>
 struct vector_expression {
@@ -32,29 +35,28 @@ template<typename E> struct transpose_expression;
 
 // Binary expression.
 
-// Element-wise arithmetic between two generic vector/matrix expressions.
+// Element-wise arithmetic (addition, substraction, multiplication, and
+// division) between two generic vector/matrix expressions.
 template<typename E1, typename E2, typename F>
 struct binary_expression : public std::conditional<
-  (E1::is_vector && E2::is_vector),
+  std::is_base_of<vector_expression<E1>, E1>::value &&
+  std::is_base_of<vector_expression<E2>, E2>::value,
   vector_expression< binary_expression<E1, E2, F> >,
   matrix_expression< binary_expression<E1, E2, F> >
   >::type {
  private:
-  using self_type = binary_expression<E1, E2, F>;
+  using self = binary_expression<E1, E2, F>;
 
  public:
-  // public types.
   using value_type = typename E1::value_type;
   using size_type = typename E1::size_type;
-  using difference_type = typename E1::difference_type;
-  using const_reference = value_type;  // typename E1::const_reference;
-  using reference = const_reference;
-  using const_pointer = typename E1::const_pointer;
-  using pointer = const_pointer;
   using shape_type = typename E1::shape_type;
   using functor_type = F;
-
-  static constexpr bool is_vector = (E1::is_vector && E2::is_vector);
+  using const_iterator =
+      internal::binary_transform_iterator<typename E1::const_iterator,
+                                          typename E2::const_iterator,
+                                          functor_type>;
+  using iterator = const_iterator;
 
   const E1& e1;
   const E2& e2;
@@ -62,113 +64,51 @@ struct binary_expression : public std::conditional<
 
   binary_expression(const E1& e1, const E2& e2, const F& f)
       : e1(e1), e2(e2), f(f) {
-    CHECK_EQ(e1.num_rows(), e2.num_rows());
-    CHECK_EQ(e1.num_cols(), e2.num_cols());
+    CHECK_EQ(e1.row_count(), e2.row_count());
+    CHECK_EQ(e1.col_count(), e2.col_count());
   }
 
-  inline size_type num_rows() const { return e1.num_rows(); }
-  inline size_type num_cols() const { return e1.num_cols(); }
-  inline shape_type shape() const { return e1.shape(); }
-  inline size_type size() const { return e1.size(); }
+  inline size_type row_count() const { return e1.row_count(); }
+  inline size_type col_count() const  { return e1.col_count(); }
+  inline shape_type shape() const  { return e1.shape(); }
+  inline size_type size() const  { return e1.size(); }
 
-  inline row_view<self_type> row_at(size_type row_index) {
-    return row_view<self_type>(this, row_index);
+  // Accesses the row at the given index row_index. No bounds checking is
+  // performed.
+  inline row_view<self> row_at(size_type row_index) {
+    return row_view<self>(this, row_index);
   }
 
-  inline col_view<self_type> col_at(size_type col_index) {
-    return col_view<self_type>(this, col_index);
+  // Accesses the column at the given index col_index. No bounds checking is
+  // performed.
+  inline col_view<self> col_at(size_type col_index) {
+    return col_view<self>(this, col_index);
   }
 
-  // Transpose of this expression.
-  inline transpose_expression<self_type> t() const {
-    return transpose_expression<self_type>(*this);
+  // Return the transpose of this expression.
+  inline transpose_expression<self> t() const {
+    return transpose_expression<self>(*this);
   }
 
   // Iterator.
 
-  class const_iterator;
-  using iterator = const_iterator;
+  inline const_iterator begin() const {
+    return internal::make_binary_transform_iterator(e1.cbegin(), e2.cbegin(),
+                                                    f);
+  }
 
-  class const_iterator {
-   private:
-    using const_subiterator1_type = typename E1::const_iterator;
-    using const_subiterator2_type = typename E2::const_iterator;
+  inline const_iterator cbegin() const {
+    return internal::make_binary_transform_iterator(e1.cbegin(), e2.cbegin(),
+                                                    f);
+  }
 
-   public:
-    // public types.
-    using value_type = typename binary_expression::value_type;
-    using difference_type = typename binary_expression::difference_type;
-    using pointer = typename binary_expression::const_pointer;
-    using reference = typename binary_expression::const_reference;
-    using iterator_category = std::input_iterator_tag;
+  inline const_iterator end() const {
+    return internal::make_binary_transform_iterator(e1.cend(), e2.end(), f);
+  }
 
-    const_iterator() : index_(), f_(), it1_(), it2_() {}
-
-    const_iterator(const binary_expression& expr, size_type index)
-        : index_(index),
-          f_(&expr.f),
-          it1_(expr.e1.begin()),
-          it2_(expr.e2.begin()) {}
-
-    // Copy constructor.
-    const_iterator(const const_iterator& it)
-        : index_(it.index_),
-          f_(it.f_),
-          it1_(it.it1_),
-          it2_(it.it2_) {
-    }
-
-    // Assignment operator.
-    const_iterator& operator=(const const_iterator& it) {
-      if (this == &it) { return *this; }
-      index_ = it.index_;
-      f_ = it.f_;
-      it1_ = it.it1_;
-      it2_ = it.it2_;
-      return *this;
-    }
-
-    // Dereference.
-    inline reference operator*() const {
-      return (*f_)(*it1_, *it2_);
-    }
-
-    // Comparison.
-
-    inline bool operator==(const const_iterator& it) const {
-      return (index_ == it.index_);
-    }
-
-    inline bool operator!=(const const_iterator& it) const {
-      return !(*this == it);
-    }
-
-    // Prefix increment ++it.
-    inline const_iterator& operator++() {
-      ++index_;
-      ++it1_;
-      ++it2_;
-      return *this;
-    }
-
-    // Postfix increment it++.
-    inline const_iterator operator++(int) {
-      const_iterator temp(*this);
-      ++(*this);
-      return temp;
-    }
-
-   private:
-    size_type index_;
-    const functor_type* f_;
-    const_subiterator1_type it1_;
-    const_subiterator2_type it2_;
-  };
-
-  inline const_iterator begin() const { return const_iterator(*this, 0); }
-  inline const_iterator cbegin() const { return begin(); }
-  inline const_iterator end() const { return const_iterator(*this, size()); }
-  inline const_iterator cend() const  {return end(); }
+  inline const_iterator cend() const  {
+    return internal::make_binary_transform_iterator(e1.cend(), e2.end(), f);
+  }
 };
 
 // Element-wise arithmetic between a generic vector/matrix expression
@@ -176,135 +116,69 @@ struct binary_expression : public std::conditional<
 template<typename E, typename F>
 struct binary_expression<E, typename E::value_type, F>
     : public std::conditional<
-  E::is_vector,
+  std::is_base_of<vector_expression<E>, E>::value,
   vector_expression<binary_expression<E, typename E::value_type, F> >,
   matrix_expression<binary_expression<E, typename E::value_type, F> >
   >::type {
  private:
-  using self_type = binary_expression<E, typename E::value_type, F>;
+  using self = binary_expression<E, typename E::value_type, F>;
 
  public:
-  // public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
-  using difference_type = typename E::difference_type;
-  using const_reference = value_type;  // typename E::const_reference;
-  using reference = const_reference;
-  using const_pointer = typename E::const_pointer;
-  using pointer = const_pointer;
   using shape_type = typename E::shape_type;
   using functor_type = F;
-
-
-  static constexpr bool is_vector = E::is_vector;
 
   const E& e;
   const value_type scalar;
   const F& f;
 
   binary_expression(const E& e, value_type scalar, const F& f)
-      : e(e), scalar(scalar), f(f) {}
+      : e(e), scalar(scalar), f(f) {
+  }
 
-  inline size_type num_rows() const { return e.num_rows(); }
-  inline size_type num_cols() const { return e.num_cols(); }
+  inline size_type row_count() const { return e.row_count(); }
+  inline size_type col_count() const { return e.col_count(); }
   inline shape_type shape() const { return e.shape(); }
   inline size_type size() const { return e.size(); }
 
-  inline row_view<self_type> row_at(size_type row_index) {
-    return row_view<self_type>(this, row_index);
+  inline row_view<self> row_at(size_type row_index) {
+    return row_view<self>(this, row_index);
   }
 
-  inline col_view<self_type> col_at(size_type col_index) {
-    return col_view<self_type>(this, col_index);
+  inline col_view<self> col_at(size_type col_index) {
+    return col_view<self>(this, col_index);
   }
 
   // Transpose of this expression.
-  inline transpose_expression<self_type> t() const {
-    return transpose_expression<self_type>(*this);
+  inline transpose_expression<self> t() const {
+    return transpose_expression<self>(*this);
   }
 
-  // Iterator.
-
-  class const_iterator;
+  using const_iterator = internal::unary_transform_iterator<
+    typename E::const_iterator,
+    decltype(std::bind(f, std::placeholders::_1, scalar))>;
   using iterator = const_iterator;
 
-  class const_iterator {
-   private:
-    using const_subiterator_type = typename E::const_iterator;
+  inline const_iterator begin() const {
+    auto u = std::bind(f, std::placeholders::_1, scalar);
+    return internal::make_unary_transform_iterator(e.cbegin(), u);
+  }
 
-   public:
-    // public types.
-    using value_type = typename binary_expression::value_type;
-    using difference_type = typename binary_expression::difference_type;
-    using pointer = typename binary_expression::const_pointer;
-    using reference = typename binary_expression::const_reference;
-    using iterator_category = std::input_iterator_tag;
+  inline const_iterator cbegin() const {
+    auto u = std::bind(f, std::placeholders::_1, scalar);
+    return internal::make_unary_transform_iterator(e.cbegin(), u);
+  }
 
-    const_iterator() : index_(), f_(), scalar_(), it_() {}
+  inline const_iterator end() const {
+    auto u = std::bind(f, std::placeholders::_1, scalar);
+    return internal::make_unary_transform_iterator(e.cend(), u);
+  }
 
-    const_iterator(const binary_expression& expr, size_type index)
-        : index_(index),
-          f_(&expr.f),
-          scalar_(expr.scalar),
-          it_(expr.e.begin()) {}
-
-    // Copy constructor.
-    const_iterator(const const_iterator& it)
-        : index_(it.index_),
-          f_(it.f_),
-          scalar_(it.scalar_),
-          it_(it.it_) {}
-
-    // Assignment operator.
-    const_iterator& operator=(const const_iterator& it) {
-      if (this == &it) { return *this; }
-      index_ = it.index_;
-      f_ = it.f_;
-      scalar_ = it.scalar_;
-      it_ = it.it_;
-      return *this;
-    }
-
-    // Dereference.
-    inline reference operator*() const {
-      return (*f_)(*it_, scalar_);
-    }
-
-    // Comparison.
-
-    inline bool operator==(const const_iterator& it) const {
-      return (index_ == it.index_);
-    }
-
-    inline bool operator!=(const const_iterator& it) const {
-      return !(*this == it);
-    }
-
-    // Prefix increment ++it.
-    inline const_iterator& operator++() {
-      ++index_;
-      ++it_;
-      return *this;
-    }
-
-    // Postfix increment it++.
-    inline const_iterator operator++(int) {
-      const_iterator temp(*this);
-      ++(*this);
-      return temp;
-    }
-
-   private:
-    size_type index_;
-    const functor_type* f_;
-    value_type scalar_;
-    const_subiterator_type it_;
-  };
-
-  inline const_iterator begin() const { return const_iterator(*this, 0); }
-  inline const_iterator cbegin() const { return begin(); }
-  inline const_iterator end() const { return const_iterator(*this, size()); }
-  inline const_iterator cend() const  {return end(); }
+  inline const_iterator cend() const  {
+    auto u = std::bind(f, std::placeholders::_1, scalar);
+    return internal::make_unary_transform_iterator(e.cend(), u);
+  }
 };
 
 // Element-wise arithmetic between a scalar and a generic vector/matrix
@@ -312,262 +186,130 @@ struct binary_expression<E, typename E::value_type, F>
 template<typename E, typename F>
 struct binary_expression<typename E::value_type, E, F>
     : public std::conditional<
-  E::is_vector,
+  std::is_base_of<vector_expression<E>, E>::value,
   vector_expression<binary_expression<typename E::value_type, E, F> >,
   matrix_expression<binary_expression<typename E::value_type, E, F> >
   >::type {
  private:
-  using self_type = binary_expression<typename E::value_type, E, F>;
+  using self = binary_expression<typename E::value_type, E, F>;
 
  public:
-  // Public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
-  using difference_type = typename E::difference_type;
-  using const_reference = value_type;  // typename E::const_reference;
-  using reference = const_reference;
-  using const_pointer = typename E::const_pointer;
-  using pointer = const_pointer;
   using shape_type = typename E::shape_type;
   using functor_type = F;
-
-  static constexpr bool is_vector = E::is_vector;
 
   const value_type scalar;
   const E& e;
   const F& f;
 
   binary_expression(value_type scalar, const E& e, const F& f)
-      : scalar(scalar), e(e), f(f) {}
+      : scalar(scalar), e(e), f(f) {
+  }
 
-  inline size_type num_rows() const { return e.num_rows(); }
-  inline size_type num_cols() const { return e.num_cols(); }
+  inline size_type row_count() const { return e.row_count(); }
+  inline size_type col_count() const { return e.col_count(); }
   inline shape_type shape() const { return e.shape(); }
   inline size_type size() const { return e.size(); }
 
-  inline row_view<self_type> row_at(size_type row_index) {
-    return row_view<self_type>(this, row_index);
+  inline row_view<self> row_at(size_type row_index) {
+    return row_view<self>(this, row_index);
   }
 
-  inline col_view<self_type> col_at(size_type col_index) {
-    return col_view<self_type>(this, col_index);
+  inline col_view<self> col_at(size_type col_index) {
+    return col_view<self>(this, col_index);
   }
 
   // Transpose of this expression.
-  inline transpose_expression<self_type> t() const {
-    return transpose_expression<self_type>(*this);
+  inline transpose_expression<self> t() const {
+    return transpose_expression<self>(*this);
   }
 
-  // Iterator.
-
-  class const_iterator;
+  using const_iterator = internal::unary_transform_iterator<
+    typename E::const_iterator,
+    decltype(std::bind(f, scalar, std::placeholders::_1))>;
   using iterator = const_iterator;
 
-  class const_iterator {
-   private:
-    using const_subiterator_type = typename E::const_iterator;
+  inline const_iterator begin() const {
+    auto u = std::bind(f, scalar, std::placeholders::_1);
+    return internal::make_unary_transform_iterator(e.cbegin(), u);
+  }
 
-   public:
-    // public types.
-    using value_type = typename binary_expression::value_type;
-    using difference_type = typename binary_expression::difference_type;
-    using pointer = typename binary_expression::const_pointer;
-    using reference = typename binary_expression::const_reference;
-    using iterator_category = std::input_iterator_tag;
+  inline const_iterator cbegin() const {
+    auto u = std::bind(f, scalar, std::placeholders::_1);
+    return internal::make_unary_transform_iterator(e.cbegin(), u);
+  }
 
-    const_iterator() : index_(), f_(), scalar_(), it_() {}
+  inline const_iterator end() const {
+    auto u = std::bind(f, scalar, std::placeholders::_1);
+    return internal::make_unary_transform_iterator(e.cend(), u);
+  }
 
-    const_iterator(const binary_expression& expr, size_type index)
-        : index_(index),
-          f_(&expr.f),
-          scalar_(expr.scalar),
-          it_(expr.e.begin()) {}
-
-    // Copy constructor.
-    const_iterator(const const_iterator& it)
-        : index_(it.index_),
-          f_(it.f_),
-          scalar_(it.scalar_),
-          it_(it.it_) { }
-
-    // Assignment operator.
-    const_iterator& operator=(const const_iterator& it) {
-      if (this == &it) { return *this; }
-      index_ = it.index_;
-      f_ = it.f_;
-      scalar_ = it.scalar_;
-      it_ = it.it_;
-      return *this;
-    }
-
-    // Dereference.
-    inline reference operator*() const {
-      return (*f_)(scalar_, *it_);
-    }
-
-    // Comparison.
-
-    inline bool operator==(const const_iterator& it) const {
-      return (index_ == it.index_);
-    }
-
-    inline bool operator!=(const const_iterator& it) const {
-      return !(*this == it);
-    }
-
-    // Prefix increment ++it.
-    inline const_iterator& operator++() {
-      ++index_;
-      ++it_;
-      return *this;
-    }
-
-    // Postfix increment it++.
-    inline const_iterator operator++(int) {
-      const_iterator temp(*this);
-      ++(*this);
-      return temp;
-    }
-
-   private:
-    size_type index_;
-    const functor_type* f_;
-    value_type scalar_;
-    const_subiterator_type it_;
-  };
-
-  inline const_iterator begin() const { return const_iterator(*this, 0); }
-  inline const_iterator cbegin() const { return begin(); }
-  inline const_iterator end() const { return const_iterator(*this, size()); }
-  inline const_iterator cend() const  {return end(); }
+  inline const_iterator cend() const  {
+    auto u = std::bind(f, scalar, std::placeholders::_1);
+    return internal::make_unary_transform_iterator(e.cend(), u);
+  }
 };
 
 // Unary expression.
 
 template<typename E, typename F>
 struct unary_expression
-    : public std::conditional<E::is_vector,
-                              vector_expression<unary_expression<E, F> >,
-                              matrix_expression<unary_expression<E, F> >
-                              >::type {
+    : public std::conditional<
+  std::is_base_of<vector_expression<E>, E>::value,
+  vector_expression<unary_expression<E, F> >,
+  matrix_expression<unary_expression<E, F> >
+  >::type {
  private:
-  using self_type = unary_expression<E, F>;
+  using self = unary_expression<E, F>;
 
  public:
-  // public types.
   using value_type = typename E::value_type;
   using size_type = typename E::size_type;
-  using difference_type = typename E::difference_type;
-  using const_reference = value_type;  // typename E::const_reference;
-  using reference = const_reference;
-  using const_pointer = typename E::const_pointer;
-  using pointer = const_pointer;
   using shape_type = typename E::shape_type;
   using functor_type = F;
-
-  static constexpr bool is_vector = E::is_vector;
+  using const_iterator = internal::unary_transform_iterator<
+    typename E::const_iterator, F>;
+  using iterator = const_iterator;
 
   const E& e;
   const F& f;
 
   unary_expression(const E& e, const F& f) : e(e), f(f) {}
 
-  inline size_type num_rows() const { return e.num_rows(); }
-  inline size_type num_cols() const { return e.num_cols(); }
+  inline size_type row_count() const { return e.row_count(); }
+  inline size_type col_count() const { return e.col_count(); }
   inline shape_type shape() const { return e.shape(); }
   inline size_type size() const { return e.size(); }
 
-  inline row_view<self_type> row_at(size_type row_index) {
-    return row_view<self_type>(this, row_index);
+  inline row_view<self> row_at(size_type row_index) {
+    return row_view<self>(this, row_index);
   }
 
-  inline col_view<self_type> col_at(size_type col_index) {
-    return col_view<self_type>(this, col_index);
+  inline col_view<self> col_at(size_type col_index) {
+    return col_view<self>(this, col_index);
   }
 
   // Transpose of this expression.
-  inline transpose_expression<self_type> t() const {
-    return transpose_expression<self_type>(*this);
+  inline transpose_expression<self> t() const {
+    return transpose_expression<self>(*this);
   }
 
-  // Iterator.
+  inline const_iterator begin() const {
+    return internal::make_unary_transform_iterator(e.cbegin(), f);
+  }
 
-  class const_iterator;
-  using iterator = const_iterator;
+  inline const_iterator cbegin() const {
+    return internal::make_unary_transform_iterator(e.cbegin(), f);
+  }
 
-  class const_iterator {
-   private:
-    using const_subiterator_type = typename E::const_iterator;
+  inline const_iterator end() const {
+    return internal::make_unary_transform_iterator(e.cend(), f);
+  }
 
-   public:
-    // public types.
-    using value_type = typename unary_expression::value_type;
-    using difference_type = typename unary_expression::difference_type;
-    using pointer = typename unary_expression::const_pointer;
-    using reference = typename unary_expression::const_reference;
-    using iterator_category = std::input_iterator_tag;
-
-    const_iterator() : index_(), f_(), it_() {}
-
-    const_iterator(const unary_expression& expr, size_type index)
-        : index_(index),
-          f_(&expr.f),
-          it_(expr.e.begin()) {}
-
-    // Copy constructor.
-    const_iterator(const const_iterator& it)
-        : index_(it.index_),
-          f_(it.f_),
-          it_(it.it_) {}
-
-    // Assignment operator.
-    const_iterator& operator=(const const_iterator& it) {
-      if (this == &it) { return *this; }
-      index_ = it.index_;
-      f_ = it.f_;
-      it_ = it.it_;
-      return *this;
-    }
-
-    // Dereference.
-    inline reference operator*() const {
-      return (*f_)(*it_);
-    }
-
-    // Comparison.
-
-    inline bool operator==(const const_iterator& it) const {
-      return (index_ == it.index_);
-    }
-
-    inline bool operator!=(const const_iterator& it) const {
-      return !(*this == it);
-    }
-
-    // Prefix increment ++it.
-    inline const_iterator& operator++() {
-      ++index_;
-      ++it_;
-      return *this;
-    }
-
-    // Postfix increment it++.
-    inline const_iterator operator++(int) {
-      const_iterator temp(*this);
-      ++(*this);
-      return temp;
-    }
-
-   private:
-    size_type index_;
-    const functor_type* f_;
-    const_subiterator_type it_;
-  };
-
-  inline const_iterator begin() const { return const_iterator(*this, 0); }
-  inline const_iterator cbegin() const { return begin(); }
-  inline const_iterator end() const { return const_iterator(*this, size()); }
-  inline const_iterator cend() const  {return end(); }
+  inline const_iterator cend() const  {
+    return internal::make_unary_transform_iterator(e.cend(), f);
+  }
 };
 
 // overload operators for vector expressions.
@@ -931,6 +673,7 @@ operator/(typename E::value_type scalar, const matrix_expression<E>& e) {
     >(scalar, e.self(), std::divides<typename E::value_type>());
 }
 
+}  // namespace linalg_detail
 }  // namespace insight
 
-#endif  // INCLUDE_INSIGHT_LINALG_ARITHMETIC_EXPRESSION_H_
+#endif  // INCLUDE_INSIGHT_LINALG_DETAIL_ARITHMETIC_EXPRESSION_H_

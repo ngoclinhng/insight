@@ -2,42 +2,48 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_DENSE_VECTOR_H_
-#define INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_DENSE_VECTOR_H_
+#ifndef INCLUDE_INSIGHT_LINALG_DETAIL_IS_DENSE_VECTOR_H_
+#define INCLUDE_INSIGHT_LINALG_DETAIL_IS_DENSE_VECTOR_H_
 
 #include <type_traits>
 
 namespace insight {
 
-// Is E a dense vector but not a vector expression?
-
-// Forward declaration of the vector class.
+// These forward declarations should be here NOT inside the linalg_detail
+// namespace.
 template<typename T, typename A> class vector;
+template<typename T, typename A> class matrix;
+
+// Is E a dense (column) vector but not a (column) vector expression?
+
+namespace linalg_detail {
 
 template<typename E> struct is_dense_vector: public std::false_type{};
+
 template<typename E> struct is_dense_vector<const E>
     : public is_dense_vector<E>{};
+
 template<typename E> struct is_dense_vector<volatile E>
     : public is_dense_vector<E>{};
+
 template<typename E> struct is_dense_vector<volatile const E>
     : public is_dense_vector<E>{};
 
 template<typename T, typename A>
-struct is_dense_vector<vector<T, A> >: public std::true_type{};  // NOLINT
+struct is_dense_vector<insight::vector<T, A> >
+    : public std::true_type{};
 
 
-// Forward declaration of the matrix class.
-template<typename T, typename A> class matrix;
-
-// Forward declaration of the row_view struct.
+// These forward declarations should be here, right inside the linalg_detail
+// namespace.
 template<typename E> struct row_view;
-
-// Forward declaration of the transpose_expression struct.
 template<typename E> struct transpose_expression;
 
 template<typename T, typename A>
-struct is_dense_vector<transpose_expression<row_view<matrix<T, A> > > >
+struct is_dense_vector<
+  transpose_expression<row_view<insight::matrix<T, A> > > >
     : public std::true_type{};
 
+}  // namespace linalg_detail
 }  // namespace insight
-#endif  // INCLUDE_INSIGHT_LINALG_TYPE_TRAITS_IS_DENSE_VECTOR_H_
+#endif  // INCLUDE_INSIGHT_LINALG_DETAIL_IS_DENSE_VECTOR_H_

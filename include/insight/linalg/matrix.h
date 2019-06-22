@@ -5,619 +5,927 @@
 #ifndef INCLUDE_INSIGHT_LINALG_MATRIX_H_
 #define INCLUDE_INSIGHT_LINALG_MATRIX_H_
 
-#include <cstdlib>
-#include <utility>
 #include <algorithm>
-#include <memory>
-#include <type_traits>
+#include <limits>
+#include <utility>
 #include <initializer_list>
-#include <iterator>
 
-#include "insight/internal/storage.h"
+#include "insight/allocator.h"
+
+#include "insight/linalg/detail/row_view.h"
+#include "insight/linalg/detail/col_view.h"
+#include "insight/linalg/detail/expression_evaluator.h"
+
+#include "insight/internal/dense_base.h"
 #include "insight/internal/math_functions.h"
-
-#include "insight/linalg/row_view.h"
-#include "insight/linalg/col_view.h"
-#include "insight/linalg/evaluator.h"
 
 #include "glog/logging.h"
 
 namespace insight {
 
-template<typename T, typename Allocator = insight_allocator<T> >
-class matrix:
-      public matrix_expression<matrix<T, Allocator> >,
-      private internal::storage<T, Allocator> {
-  using self_type = matrix<T, Allocator>;
-  using buffer = internal::storage<T, Allocator>;
+// Dense, row-major order matrix.
+template<typename T, typename Alloc = allocator<T> >  // NOLINT
+class matrix
+    : private internal::dense_base<T, Alloc>,
+  public linalg_detail::matrix_expression<matrix<T, Alloc> > {
+ private:
+  using base = internal::dense_base<T, Alloc>;
+  using self = matrix;
+  using alloc_traits = typename base::alloc_traits;
 
  public:
   using value_type = T;
-  using allocator_type = Allocator;
-  using size_type = typename std::allocator_traits<Allocator>::size_type;
-  using difference_type =
-      typename std::allocator_traits<Allocator>::difference_type;
-  using reference = value_type&;
-  using const_reference = const value_type&;
-  using pointer = typename std::allocator_traits<Allocator>::pointer;
-  using const_pointer =
-      typename std::allocator_traits<Allocator>::const_pointer;
-
+  using allocator_type = Alloc;
+  using reference = typename base::reference;
+  using const_reference = typename base::const_reference;
+  using size_type = typename base::size_type;
+  using shape_type = std::pair<size_type, size_type>;  // NOLINT
+  using difference_type = typename base::difference_type;
+  using pointer = typename base::pointer;
+  using const_pointer = typename base::const_pointer;
   using iterator = pointer;
   using const_iterator = const_pointer;
 
-  using shape_type = std::pair<size_type, size_type>;
+  static_assert(std::is_same<typename allocator_type::value_type,
+                value_type>::value,
+                "Alloc::value_type must be the same as value_type");
 
-  static constexpr bool is_vector = false;
+  // TODO(Linh): What about complex data type?
+  static_assert(std::is_arithmetic<value_type>::value,
+                "matrix<T> only accepts arithmetic types.");
 
-  // Constructs an empty dense matrix.
-  matrix() : buffer(),
-             num_rows_(0),
-             num_cols_(0) {
-  }
+  // Constructs an empty matrix. An empty matrix is a matrix with zero number
+  // of rows, zero number of columns, and zero number of elements.
+  matrix() INSIGHT_NOEXCEPT_IF(
+      std::is_nothrow_default_constructible<allocator_type>::value);
 
-  // Constructs a dense matrix of size `(num_rows, num_cols)`, all elements
-  // are initialized to `value` (which is `zero` by default). Use the
-  // optional `alloc` argument to customize the memory management.
-  matrix(size_type num_rows,
-         size_type num_cols,
-         const_reference value = value_type(),
-         const allocator_type& alloc = insight_allocator<T>())
-      : buffer(num_rows * num_cols, alloc),
-        num_rows_(num_rows),
-        num_cols_(num_cols) {
-    // TODO(Linh): Should we use std::fill instead for trivially
-    // constructible type T?
-    std::uninitialized_fill_n(buffer::start, num_rows * num_cols, value);
-  }
+  // Constructs a dense matrix with row_count (or dim.first) number of rows,
+  // and col_count (or dim.second) number of columns, all elements are
+  // default-constructed.
+  //
+  // If row_count * col_count == 0 or dim.first * dim.second == 0,
+  // then an empty matrix will be constructed.
+  matrix(size_type row_count, size_type col_count);
+  explicit matrix(const shape_type& dim);
 
-  // Constructs a dense matrix with the specified dimension `dim`, whose
-  // number of rows is equal to `dim.first`, and number of columns is equal
-  // to `dim.second`. all elements are initialized to `value`
-  // (which is `zero` by default). Use the optional `alloc` argument to
-  // customize the memory management.
-  explicit matrix(shape_type dim,
-                  const_reference value = value_type(),
-                  const allocator_type& alloc = insight_allocator<T>())
-      : buffer(dim.first * dim.second, alloc),
-        num_rows_(dim.first),
-        num_cols_(dim.second) {
-    std::uninitialized_fill_n(buffer::start, dim.first * dim.second, value);
-  }
+  // Constructs a dense matrix with row_count (or dim.first) number of rows,
+  // and col_count (or dim.second) number of columns, all elements are
+  // copy-constructed from value.
+  //
+  // If row_count * col_count == 0 or dim.first * dim.second == 0,
+  // then an empty matrix will be constructed.
+  matrix(size_type row_count, size_type col_count, const_reference value);
+  matrix(const shape_type& dim, const_reference value);
 
-  // copy constructor.
-  matrix(const matrix& m)
-      : buffer(m.size(), m.alloc),
-        num_rows_(m.num_rows_),
-        num_cols_(m.num_cols_) {
-    // TODO(Linh): should we use std::copy for trivially constructible type
-    // T?
-    std::uninitialized_copy_n(m.begin(), m.size(), buffer::start);
-  }
+  // Constructs a 1 by n matrix (a row vector) with the contents in the
+  // range [first, last) where n is the number of elements in that range.
+  //
+  // If std::distance(first, last) == 0, then an empty matrix will be
+  // constructed.
+  template<typename ForwardIter>
+  matrix(ForwardIter first, ForwardIter last,
+         typename std::enable_if<
+         internal::is_forward_iterator<ForwardIter>::value &&
+         std::is_constructible<value_type,
+         typename std::iterator_traits<ForwardIter>::reference>::value
+         >::type* = 0);
 
-  // assignment operator.
-  self_type& operator=(const self_type& rhs) {
-    // self-assignment
-    if (this == &rhs) { return *this; }
+  // TODO(Linh): Should this be default, i.e = default instead?
+  ~matrix() {}
 
-    // Only allocate new memory when the current capacity is less than
-    // the size of the left hand side matrix.
-    if (capacity() < rhs.size()) {
-      self_type temp(rhs);
-      temp.swap(*this);
-      return *this;
-    }
+  // Copy constructor and assignment operator.
+  matrix(const matrix& m);
+  matrix& operator=(const matrix& m);
 
-    // Otherwise, reuse memory and copy data over.
-    buffer::alloc = rhs.alloc;
-    copy_data(rhs.begin(), rhs.size());
-    buffer::end = buffer::start + rhs.size();
-    num_rows_ = rhs.num_rows_;
-    num_cols_ = rhs.num_cols_;
+  // Move constructor & move assignment operator.
+  matrix(matrix&& m) INSIGHT_NOEXCEPT_IF(
+      std::is_nothrow_move_constructible<allocator_type>::value);
+  matrix& operator=(matrix&& m) INSIGHT_NOEXCEPT_IF(
+      alloc_traits::propagate_on_container_move_assignment::value &&
+      std::is_nothrow_move_assignable<allocator_type>::value);
 
-    return *this;
-  }
-
-  // Move constructor.
-  matrix(matrix&& temp) noexcept : buffer(),
-                                   num_rows_(0),
-                                   num_cols_(0) {
-    temp.swap(*this);
-  }
-
-  // Move assignment operator.
-  self_type& operator=(self_type&& rhs) noexcept {
-    if (this == &rhs) { return *this; }
-    rhs.swap(*this);
-    return *this;
-  }
-
-  // Destructor.
-  ~matrix() { destroy_elements(); }
-
-  // Constructs a 1 by `n` matrix ( a row vector ) with the contents of the
-  // initializer list `init` where `n` is the size of `init`.
-  matrix(const std::initializer_list<T>& init,
-         const allocator_type& alloc = insight_allocator<T>())
-      : buffer(init.size(), alloc),
-        num_rows_(init.size() > 0 ? 1 : 0),
-        num_cols_(init.size()) {
-    std::uninitialized_copy_n(init.begin(), init.size(), buffer::start);
-  }
-
-  // Assigns to an initializer list.
-  self_type& operator=(const std::initializer_list<T>& init) {
-    if (capacity() < init.size()) {
-      self_type temp(init);
-      temp.swap(*this);
-      return *this;
-    }
-
-    copy_data(init.begin(), init.size());
-    buffer::end = buffer::start + init.size();
-    num_rows_ = init.size() > 0 ? 1 : 0;
-    num_cols_ = init.size();
-
-    return *this;
-  }
+  // Constructs a 1 by n matrix (a row vector) with the contents of the
+  // initializer_list il where n == il.size().
+  //
+  // If n == 0, then an empty matrix will be contructed.
+  matrix(std::initializer_list<value_type> il);
+  matrix& operator=(std::initializer_list<value_type> il);
 
   // Constructs a `m` by `n` matrix with the contents of the initializer
-  // list `init`, where `m` is the size of `init` and `n` is the size of
+  // list `init`, where `m` is the size of `il` and `n` is the size of
   // each of its sub-list.
-  matrix(const std::initializer_list<std::initializer_list<T>>& init,
-         const allocator_type& alloc = insight_allocator<T>())
-      : buffer(0, alloc),
-        num_rows_(0),
-        num_cols_(0) {
-    if (init.size() == 0) { return; }
-
-    // Make sure all sub-lists are of the same size.
-    auto sublist_size = init.begin()->size();
-    CHECK_GT(sublist_size, static_cast<size_type>(0));
-    CHECK(std::all_of(init.begin(), init.end(),
-                      [&](const std::initializer_list<T>& sublist) {
-                        return (sublist.size() == sublist_size);
-                      }))
-        << "Invalid nested initializer list: all sublists must have the "
-        << "same number of elements";
-
-    // Allocate memory.
-    buffer::reserve(init.size() * sublist_size);
-
-    // Copy data over.
-    pointer p = buffer::start;
-    for (auto it = init.begin(); it != init.end(); ++it) {
-      std::uninitialized_copy_n(it->begin(), sublist_size, p);
-      p += sublist_size;
-    }
-
-    buffer::end = buffer::start + init.size() * sublist_size;
-    num_rows_ = init.size();
-    num_cols_ = sublist_size;
-  }
-
-  // Assigns to a nested initializer list.
-  self_type&
-  operator=(const std::initializer_list<std::initializer_list<T>>& init) {
-    CHECK_GT(init.size(), static_cast<size_type>(0));
-
-    // Make sure all sub-lists are of the same size.
-    auto sublist_size = init.begin()->size();
-    CHECK_GT(sublist_size, static_cast<size_type>(0));
-    CHECK(std::all_of(init.begin(), init.end(),
-                      [&](const std::initializer_list<T>& sublist) {
-                        return (sublist.size() == sublist_size);
-                      }))
-        << "Invalid nested initializer list: all sublists must have the "
-        << "same number of elements";
-
-    size_type count = init.size() * sublist_size;
-
-    if (capacity() < count) {
-      self_type temp(init);
-      temp.swap(*this);
-      return *this;
-    }
-
-    size_type this_size = size();
-
-    if (this_size >= count) {
-      pointer p = buffer::start;
-
-      // Copy data over.
-      for (auto it = init.begin(); it != init.end(); ++it) {
-        std::copy(it->begin(), it->end(), p);
-        p += sublist_size;
-      }
-
-      // Destroy surplus elements.
-      while (p != buffer::end) { p->~value_type(); ++p; }
-    } else if (this_size >= sublist_size) {
-      // TODO(Linh): Is this too odd?
-      std::ldiv_t dv = std::ldiv(this_size, sublist_size);
-      size_type quot = static_cast<size_type>(dv.quot);
-      size_type rem = static_cast<size_type>(dv.rem);
-
-      pointer p = buffer::start;
-      auto it = init.begin();
-      size_type i = 0;
-
-      // Copy data over.
-
-      while (true) {
-        if (i == quot) { break; }
-        std::copy(it->begin(), it->end(), p);
-        p += sublist_size;
-        ++it;
-        ++i;
-      }
-
-      std::copy(it->begin(), it->begin() + rem, p);
-      p += rem;
-
-      // Construct additional elements.
-
-      std::uninitialized_copy_n(it->begin() + rem,
-                                sublist_size - rem,
-                                p);
-      ++it;
-      p += (sublist_size - rem);
-
-      while (it != init.end()) {
-        std::uninitialized_copy_n(it->begin(), sublist_size, p);
-        p += sublist_size;
-        ++it;
-      }
-    } else {
-      auto it = init.begin();
-      pointer p = buffer::start;
-      std::copy(it->begin(), it->begin() + this_size, p);
-      p += this_size;
-      std::uninitialized_copy_n(it->begin() + this_size,
-                                sublist_size - this_size,
-                                p);
-      p += (sublist_size - this_size);
-      ++it;
-
-      while (it != init.end()) {
-        std::uninitialized_copy_n(it->begin(), sublist_size, p);
-        p += sublist_size;
-        ++it;
-      }
-    }
-
-    buffer::end = buffer::start + count;
-    num_rows_ = init.size();
-    num_cols_ = sublist_size;
-
-    return *this;
-  }
-
-  // constructs a `1` by `n` matrix from a given row_view where `n` is
-  // the size of the row_view `view`.
-
-  // class row_view;
-
-  // matrix(const row_view& view,
-  //        const allocator_type& alloc = insight_allocator<T>())  // NOLINT
-  //     : buffer(view.size(), alloc),
-  //       num_rows_(1),
-  //       num_cols_(view.size()) {
-  //   std::uninitialized_copy_n(view.begin(), view.size(), buffer::start);
-  // }
-
-  // self_type& operator=(const row_view& view) {
-  //   if (capacity() < view.size()) {
-  //     self_type temp(view);
-  //     temp.swap(*this);
-  //     return *this;
-  //   }
-
-  //   if (view.has_backing_matrix(*this) && (view.begin() == begin())) {
-  //     // Destroy surplus elements.
-  //     pointer p = buffer::start + view.size();
-  //     while (p != buffer::end) { p->~value_type(); ++p; }
-  //   } else {
-  //     copy_data(view.begin(), view.size());
-  //   }
-
-  //   buffer::end = buffer::start + view.size();
-  //   num_rows_ = 1;
-  //   num_cols_ = view.size();
-
-  //   return *this;
-  // }
+  matrix(std::initializer_list<std::initializer_list<value_type> > il);
+  matrix& operator=(std::initializer_list<std::initializer_list<value_type> > il);  // NOLINT
 
   // Constructs a matrix from a generic matrix expression.
+
   template<typename E>
-  matrix(const matrix_expression<E>& expr,
-         const allocator_type& alloc = Allocator())  // NOLINT
-      : buffer(expr.self().size(), alloc),
-        num_rows_(expr.self().num_rows()),
-        num_cols_(expr.self().num_cols()) {
-    evaluator<E>::assign(expr.self(), buffer::start);
-  }
+  matrix(const linalg_detail::matrix_expression<E>& expr);  // NOLINT
 
-  // Assigns to a generic matrix expression.
   template<typename E>
-  self_type& operator=(const matrix_expression<E>& expr) {
-    if (capacity() < expr.self().size()) {
-      self_type temp(expr);
-      temp.swap(*this);
-      return *this;
-    }
+  matrix& operator=(const linalg_detail::matrix_expression<E>& expr);
 
-    evaluator<E>::assign(expr.self(), buffer::start);
-    buffer::end = buffer::start + expr.self().size();
-    num_rows_ = expr.self().num_rows();
-    num_cols_ = expr.self().num_cols();
-    return *this;
+  // Returns the allocator.
+  allocator_type get_allocator() const INSIGHT_NOEXCEPT {
+    return this->alloc_;
   }
 
-  // Return the number of rows in `this` matrix.
-  inline size_type num_rows() const { return num_rows_; }
+  // Iterators.
 
-  // Returns the number of columns in `this` matrix.
-  inline size_type num_cols() const { return num_cols_; }
+  inline iterator begin() INSIGHT_NOEXCEPT { return this->begin_; }
+  inline const_iterator begin() const INSIGHT_NOEXCEPT {
+    return this->begin_;
+  }
+  inline iterator end() INSIGHT_NOEXCEPT { return this->end_; }
+  inline const_iterator end() const INSIGHT_NOEXCEPT { return this->end_; }
 
-  // Returns the `(num_rows, num_cols)` pair that represents the
-  // shape/dimensions of `this` matrix.
-  inline shape_type shape() const {
-    return shape_type(num_rows_, num_cols_);
+  inline const_iterator cbegin() const INSIGHT_NOEXCEPT { return begin(); }
+  inline const_iterator cend() const INSIGHT_NOEXCEPT { return end(); }
+
+  // Returns the number of rows in the matrix.
+  inline size_type row_count() const INSIGHT_NOEXCEPT { return dim_.first; }
+
+  // Returns the number of columns in the matrix.
+  inline size_type col_count() const INSIGHT_NOEXCEPT { return dim_.second; }
+
+  // Returns the shape of this matrix.
+  inline const shape_type& shape() const INSIGHT_NOEXCEPT { return dim_; }
+
+  // Returns the number of elements in the matrix.
+  inline size_type size() const INSIGHT_NOEXCEPT { return base::size(); }
+
+  // Returns the number of elements that the container has allocated space
+  // for
+  inline size_type capacity() const INSIGHT_NOEXCEPT {
+    return base::capacity();
   }
 
-  // Returns the number of elements in `this` matrix.
-  inline size_type size() const { return (buffer::end - buffer::start); }
-
-  // Returns true if this matrix is empty.
-  inline bool empty() const { return size() == 0;}
-
-  // Returns the number of elements that the matrix has currently
-  // allocated space for.
-  inline size_type capacity() const {
-    return (buffer::last - buffer::start);
+  // Returns true if the matrix is empty, i.e there is no elements in the
+  // matrix, and row_count() == col_count() == 0.
+  inline bool empty() const INSIGHT_NOEXCEPT {
+    return (this->begin_ == this->end_);
   }
 
-  //
-  // Returns the underlying allocator.
-  inline allocator_type get_allocator() const { return buffer::alloc; }
+  // Returns the maximum number of elements the matrix is able to hold.
+  size_type max_size() const INSIGHT_NOEXCEPT;
 
-  // Accesses the element at index i in the underlying buffer without
-  // bounce-checking. A reference is returned.
-  inline reference operator[](const size_type i) { return buffer::start[i]; }
-
-  // Accesses the element at index i in the underlying buffer without
-  // bounce-checking. A const reference is returned.
-  inline const_reference operator[](const size_type i) const {
-    return buffer::start[i];
+  // Returns a reference to the element at the specified index.
+  // No bounds checking is performed.
+  inline reference operator[](size_type index) INSIGHT_NOEXCEPT {
+    return this->begin_[index];
   }
 
-  // Accesses the element at row `i` and column `j` in the matrix without
-  // bounce-checking. A reference is returned.
-  inline reference operator()(const size_type i, const size_type j) {
-    return buffer::start[i * num_cols_ + j];
+  // Returns the const reference to the element at the specified index.
+  // No bounds checking is performed.
+  inline const_reference operator[](size_type index) const INSIGHT_NOEXCEPT {
+    return this->begin_[index];
   }
 
-  // Accesses the element at row `i` and column `j` in the matrix without
-  // bounce-checking. A const reference is returned.
-  inline const_reference operator()(const size_type i,
-                                    const size_type j) const {
-    return buffer::start[i * num_cols_ + j];
+  // Returns the reference to the element at the specified location
+  // (row_index, col_index). No bounds checking is performed
+  inline reference operator()(size_type row_index, size_type col_index)
+      INSIGHT_NOEXCEPT {
+    return this->begin_[row_index * dim_.second + col_index];
   }
 
-  // Element-wise iterator
-
-  inline iterator begin() { return buffer::start; }
-  inline const_iterator begin() const { return buffer::start; }
-  inline const_iterator cbegin() const { return buffer::start; }
-
-  inline iterator end() { return buffer::end; }
-  inline const_iterator end() const { return buffer::end; }
-  inline const_iterator cend() const { return buffer::end; }
-
-  // Swap two matrices.
-  void swap(self_type& other) noexcept {
-    using std::swap;
-    swap(static_cast<buffer&>(*this), static_cast<buffer&>(other));
-    swap(num_rows_, other.num_rows_);
-    swap(num_cols_, other.num_cols_);
+  // Returns the const reference to the element at the specified location
+  // (row_index, col_index). No bounds checking is performed
+  inline const_reference operator()(size_type row_index, size_type col_index)
+      const INSIGHT_NOEXCEPT {
+    return this->begin_[row_index * dim_.second + col_index];
   }
+
+  // Returns the pointer to the underlying array.
+  inline value_type* data() INSIGHT_NOEXCEPT { return this->begin_; }
+  inline const value_type* data() const INSIGHT_NOEXCEPT {
+    return this->begin_;
+  }
+
+  // Clear all the contents in the matrix and set its size to zero.
+  // Matrix will become an emtpy matrix after clear call.
+  void clear() INSIGHT_NOEXCEPT;
+
+  // Changes the dimension of the matrix without affecting the contents.
+  void reshape(size_type new_row_count, size_type new_col_count)
+      INSIGHT_NOEXCEPT;
+
+  void swap(matrix& m) INSIGHT_NOEXCEPT_IF(
+      !alloc_traits::propagate_on_container_swap::value ||
+      internal::is_nothrow_swappable<allocator_type>::value);
 
   // Accesses the row at index `row_index`.
-  inline row_view<self_type> row_at(size_type row_index) {
-    return row_view<self_type>(this, row_index);
+  inline linalg_detail::row_view<self> row_at(size_type row_index) {
+    return linalg_detail::row_view<self>(this, row_index);
   }
 
   // Accesses the column at index `col_index`.
-  inline col_view<self_type> col_at(size_type col_index) {
-    return col_view<self_type>(this, col_index);
+  inline linalg_detail::col_view<self> col_at(size_type col_index) {
+    return linalg_detail::col_view<self>(this, col_index);
   }
 
-  // matrix-scalar arithmetic.
+  // return the transpose of this matrix.
+  inline linalg_detail::transpose_expression<self> t() const {
+    return linalg_detail::transpose_expression<self>(*this);
+  }
 
-  // Increments each and every element in the matrix by the constant
-  // `scalar`.
-  inline self_type& operator+=(value_type scalar) {
-    std::for_each(begin(), end(), [&](reference e) { e += scalar; });
+  // Matrix-scalar arithmetic.
+
+  // Increments each and every element in the matrix by the constant scalar.
+  inline matrix& operator+=(const_reference scalar) {
+    std::for_each(this->begin_, this->end_, [&](reference e) { e += scalar; });
     return *this;
   }
 
-  // Decrements each and every element in the matrix by the constant
-  // `scalar`.
-  inline self_type& operator-=(value_type scalar) {
-    std::for_each(begin(), end(), [&](reference e) { e -= scalar; });
-    return *this;
-  }
-
-  // Replaces each and every element in the matrix by the result of
-  // multiplication of that element and a `scalar`.
-  inline self_type& operator*=(value_type scalar) {
-    if (std::is_floating_point<T>::value) {
-      internal::insight_scal(size(), scalar, begin());
-    } else {
-      std::for_each(begin(), end(), [&](reference e) { e *= scalar; });
-    }
+  // Decrements each and every element in the matrix by the constant scalar.
+  inline matrix& operator-=(const_reference scalar) {
+    std::for_each(this->begin_, this->end_, [&](reference e) { e -= scalar; });
     return *this;
   }
 
   // Replaces each and every element in the matrix by the result of
-  // dividing that element by a constant `scalar`.
-  inline self_type& operator/=(value_type scalar) {
-    if (std::is_floating_point<T>::value) {
-      internal::insight_scal(size(), value_type(1.0) / scalar, begin());
-    } else {
-      std::for_each(begin(), end(), [&](reference e) { e /= scalar; });
-    }
+  // multiplication of that element and a scalar.
+  inline matrix& operator*=(const_reference scalar) {
+    mul_scalar_(scalar, std::integral_constant<bool, std::is_floating_point<value_type>::value>());  // NOLINT
+    return *this;
+  }
+
+  // Replaces each and every element in the matrix by the result of
+  // dividing that element by a constant scalar.
+  inline matrix& operator/=(const_reference scalar) {
+    div_scalar_(scalar, std::integral_constant<bool, std::is_floating_point<value_type>::value>());  // NOLINT
     return *this;
   }
 
   // matrix-matrix arithmetic.
 
-  // Replaces each and every element in `this` matrix by the result of
-  // adding that element with the corresponfing element in the `other`
-  // matrix.
-  inline self_type& operator+=(const matrix& other) {
-    // TODO(Linh): What happens if `this == &other`? Do we need to treat
-    // this case separately by multiplying `this` by `2` for example?
-    CHECK_EQ(num_rows(), other.num_rows());
-    CHECK_EQ(num_cols(), other.num_cols());
-    if (std::is_floating_point<T>::value) {
-      internal::insight_add(size(), other.begin(), begin(), begin());
-    } else {
-      auto it = other.begin();
-      std::for_each(begin(), end(), [&](reference e) { e += *it++; });
-    }
+  // Replaces each and every element in this matrix by the result of
+  // adding that element with the corresponfing element in the matrix m.
+  inline matrix& operator+=(const matrix& m) {
+    CHECK_EQ(row_count(), m.row_count());
+    CHECK_EQ(col_count(), m.col_count());
+    add_matrix_(m, std::integral_constant<bool, std::is_floating_point<value_type>::value>());  // NOLINT
     return *this;
   }
 
-  // Replaces each and every element in `this` matrix by the result of
-  // substracting the corresponding element in the `other` matrix from that
+  // Replaces each and every element in this matrix by the result of
+  // substracting the corresponding element in the matrix m from that
   // element.
-  inline self_type& operator-=(const matrix& other) {
-    // TODO(Linh): What happens if `this == &other`? Do we need to treat
-    // this case separately by setting all elements of `this` to `zero`?
-    CHECK_EQ(num_rows(), other.num_rows());
-    CHECK_EQ(num_cols(), other.num_cols());
-    if (std::is_floating_point<T>::value) {
-      internal::insight_sub(size(), begin(), other.begin(), begin());
-    } else {
-      auto it = other.begin();
-      std::for_each(begin(), end(), [&](reference e) { e -= *it++; });
-    }
+  inline matrix& operator-=(const matrix& m) {
+    CHECK_EQ(row_count(), m.row_count());
+    CHECK_EQ(col_count(), m.col_count());
+    sub_matrix_(m, std::integral_constant<bool, std::is_floating_point<value_type>::value>());  // NOLINT
     return *this;
   }
 
-  // Replaces each and every element in `this` matrix by the result of
-  // multiplying that element and the corresponding element in the
-  // `other` matrix.
-  inline self_type& operator*=(const matrix& other) {
-    // TODO(Linh): What happens if `this == &other`? Do we need to treat
-    // this case separately?
-    CHECK_EQ(num_rows(), other.num_rows());
-    CHECK_EQ(num_cols(), other.num_cols());
-    if (std::is_floating_point<T>::value) {
-      internal::insight_mul(size(), other.begin(), begin(), begin());
-    } else {
-      auto it = other.begin();
-      std::for_each(begin(), end(), [&](reference e) { e *= *it++; });
-    }
+  // Replaces each and every element in this matrix by the result of
+  // multiplying that element and the corresponding element in the matrix m.
+  inline matrix& operator*=(const matrix& m) {
+    CHECK_EQ(row_count(), m.row_count());
+    CHECK_EQ(col_count(), m.col_count());
+    mul_matrix_(m, std::integral_constant<bool, std::is_floating_point<value_type>::value>());  // NOLINT
     return *this;
   }
 
-  // Replaces each and every element in `this` matrix by the result of
-  // dividing that element by the corresponding element in the `other`
-  // matrix.
-  inline self_type& operator/=(const matrix& other) {
-    // TODO(Linh): What happens if `this == &other`? Do we need to treat
-    // this case separately by setting all elements of `this` to `one`?
-    CHECK_EQ(num_rows(), other.num_rows());
-    CHECK_EQ(num_cols(), other.num_cols());
-    if (std::is_floating_point<T>::value) {
-      internal::insight_div(size(), begin(), other.begin(), begin());
-    } else {
-      auto it = other.begin();
-      std::for_each(begin(), end(), [&](reference e) { e /= *it++; });
-    }
+  // Replaces each and every element in this matrix by the result of
+  // dividing that element by the corresponding element in the matrix m.
+  inline matrix& operator/=(const matrix& m) {
+    CHECK_EQ(row_count(), m.row_count());
+    CHECK_EQ(col_count(), m.col_count());
+    div_matrix_(m, std::integral_constant<bool, std::is_floating_point<value_type>::value>());  // NOLINT
     return *this;
   }
 
-  // Matrix expresison arithmetic.
+  // matrix expression arithmetic.
 
   template<typename E>
-  inline self_type& operator+=(const matrix_expression<E>& expr) {
-    CHECK_EQ(num_rows(), expr.self().num_rows());
-    CHECK_EQ(num_cols(), expr.self().num_cols());
-    evaluator<E>::add(expr.self(), buffer::start);
+  inline matrix& operator+=(const linalg_detail::matrix_expression<E>& expr) {
+    CHECK_EQ(row_count(), expr.self().row_count());
+    CHECK_EQ(col_count(), expr.self().col_count());
+    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::add(expr.self(), this->begin_);  // NOLINT
     return *this;
   }
 
   template<typename E>
-  inline self_type& operator-=(const matrix_expression<E>& expr) {
-    CHECK_EQ(num_rows(), expr.self().num_rows());
-    CHECK_EQ(num_cols(), expr.self().num_cols());
-    evaluator<E>::sub(expr.self(), buffer::start);
+  inline matrix& operator-=(const linalg_detail::matrix_expression<E>& expr) {
+    CHECK_EQ(row_count(), expr.self().row_count());
+    CHECK_EQ(col_count(), expr.self().col_count());
+    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::sub(expr.self(), this->begin_);  // NOLINT
     return *this;
   }
 
   template<typename E>
-  inline self_type& operator*=(const matrix_expression<E>& expr) {
-    CHECK_EQ(num_rows(), expr.self().num_rows());
-    CHECK_EQ(num_cols(), expr.self().num_cols());
-    evaluator<E>::mul(expr.self(), buffer::start);
+  inline matrix& operator*=(const linalg_detail::matrix_expression<E>& expr) {
+    CHECK_EQ(row_count(), expr.self().row_count());
+    CHECK_EQ(col_count(), expr.self().col_count());
+    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::mul(expr.self(), this->begin_);  // NOLINT
     return *this;
   }
 
   template<typename E>
-  inline self_type& operator/=(const matrix_expression<E>& expr) {
-    CHECK_EQ(num_rows(), expr.self().num_rows());
-    CHECK_EQ(num_cols(), expr.self().num_cols());
-    evaluator<E>::div(expr.self(), buffer::start);
+  inline matrix& operator/=(const linalg_detail::matrix_expression<E>& expr) {
+    CHECK_EQ(row_count(), expr.self().row_count());
+    CHECK_EQ(col_count(), expr.self().col_count());
+    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::div(expr.self(), this->begin_);  // NOLINT
     return *this;
-  }
-
-  // Transpose of this matrix.
-  inline transpose_expression<self_type> t() const {
-    return transpose_expression<self_type>(*this);
   }
 
  private:
-  size_type num_rows_;
-  size_type num_cols_;
+  shape_type dim_;
 
-  void destroy_elements() {
-    if (std::is_trivially_destructible<T>::value) { return; }
-    pointer p = buffer::start;
-    while (p != buffer::end) { p->~value_type(); ++p; }
-  }
+  // Allocate space for n objects.
+  void allocate_memory_(size_type n);
 
-  template<typename InputIt>
-  void copy_data(InputIt first, size_type count) {
-    size_type sz = size();
+  // Deallocate memory.
+  void deallocate_memory_() INSIGHT_NOEXCEPT;
 
-    if (count <= sz) {
-      // Copy over old elements
-      std::copy(first, first + count, buffer::start);
+  // Default constructs n objects starting at end_.
+  void construct_at_end_(size_type n);
 
-      // Destroy surplus elements.
-      pointer p = buffer::start + count;
-      while (p != buffer::end) { p->~value_type(); ++p; }
-    } else {
-      // Copy over old elements
-      std::copy(first, first + sz, buffer::start);
+  // Copy constructs n objects starting at end_ from value.
+  void construct_at_end_(size_type n, const_reference value);
 
-      // Construct additional elements.
-      std::uninitialized_copy_n(first + sz, count - sz, buffer::end);
-    }
-  }
+  // Constructs n objects starting at end_ from the range [first, last).
+  // where n == std::distance(first, last).
+  template<typename ForwardIter>
+  typename
+  std::enable_if<internal::is_forward_iterator<ForwardIter>::value,
+                 void>::type
+  construct_at_end_(ForwardIter first, ForwardIter last);
+
+  // Replaces all the contents in the buffer by the contents of the range
+  // [first, last). Memory allocated if neccessary.
+  template<typename ForwardIter>
+  typename
+  std::enable_if<
+    internal::is_forward_iterator<ForwardIter>::value &&
+    std::is_constructible<
+      value_type,
+      typename std::iterator_traits<ForwardIter>::reference>::value,
+    void>::type
+  assign_(ForwardIter first, ForwardIter last);
+
+  // Move m to this matrix when propagate_on_container_move_assignment
+  // is true. this's allocator will be replaced
+  void move_assign_(matrix& m, std::true_type) INSIGHT_NOEXCEPT_IF(  // NOLINT
+      std::is_nothrow_move_assignable<allocator_type>::value);
+
+  // Move m to this matrix whenpropagate_on_container_move_assignment
+  // is false. the old allocator is kept.
+  void move_assign_(matrix& m, std::false_type);  // NOLINT
+
+  // helper methods for matrix-scalar arithmetic.
+
+  void mul_scalar_(const_reference scalar, std::true_type);
+  void mul_scalar_(const_reference scalar, std::false_type);
+
+  void div_scalar_(const_reference scalar, std::true_type);
+  void div_scalar_(const_reference scalar, std::false_type);
+
+  // Helper methods for matrix-matrix arithmetic.
+
+  void add_matrix_(const matrix& m, std::true_type);
+  void add_matrix_(const matrix& m, std::false_type);
+
+  void sub_matrix_(const matrix& m, std::true_type);
+  void sub_matrix_(const matrix& m, std::false_type);
+
+  void mul_matrix_(const matrix& m, std::true_type);
+  void mul_matrix_(const matrix& m, std::false_type);
+
+  void div_matrix_(const matrix& m, std::true_type);
+  void div_matrix_(const matrix& m, std::false_type);
 };
 
-// According to the Effective C++ swap idiom (item 25), we also need
-// to provide a free swap function.
-template<typename T, typename Allocator>
-void swap(matrix<T, Allocator>& m1, matrix<T, Allocator>& m2) noexcept {
+template<typename T, typename Alloc>
+inline
+matrix<T, Alloc>::matrix() INSIGHT_NOEXCEPT_IF(
+    std::is_nothrow_default_constructible<allocator_type>::value)
+    : base(), dim_() {
+}
+
+template<typename T, typename Alloc>
+matrix<T, Alloc>::matrix(size_type row_count, size_type col_count)
+    : base(),
+      dim_() {
+  size_type sz = row_count * col_count;
+  if (sz > 0) {
+    allocate_memory_(sz);
+    construct_at_end_(sz);
+    dim_ = std::make_pair(row_count, col_count);
+  }
+}
+
+template<typename T, typename Alloc>
+matrix<T, Alloc>::matrix(const shape_type& dim)
+    : base(),
+      dim_() {
+  size_type sz = dim.first * dim.second;
+  if (sz > 0) {
+    allocate_memory_(sz);
+    construct_at_end_(sz);
+    dim_ = dim;
+  }
+}
+
+template<typename T, typename Alloc>
+matrix<T, Alloc>::matrix(size_type row_count,
+                         size_type col_count,
+                         const_reference value)
+    : base(),
+      dim_() {
+  size_type sz = row_count * col_count;
+  if (sz > 0) {
+    allocate_memory_(sz);
+    construct_at_end_(sz, value);
+    dim_ = std::make_pair(row_count, col_count);
+  }
+}
+
+template<typename T, typename Alloc>
+matrix<T, Alloc>::matrix(const shape_type& dim,
+                         const_reference value)
+    : base(),
+      dim_() {
+  size_type sz = dim.first * dim.second;
+  if (sz > 0) {
+    allocate_memory_(sz);
+    construct_at_end_(sz, value);
+    dim_ = dim;
+  }
+}
+
+template<typename T, typename Alloc>
+template<typename ForwardIter>
+matrix<T, Alloc>::matrix(ForwardIter first, ForwardIter last,
+                         typename std::enable_if<
+                         internal::is_forward_iterator<ForwardIter>::value &&
+                         std::is_constructible<value_type,
+                         typename std::iterator_traits<ForwardIter>::reference>::value>::type*)
+    : base(),
+      dim_() {
+  size_type sz = static_cast<size_type>(std::distance(first, last));
+  if (sz > 0) {
+    allocate_memory_(sz);
+    construct_at_end_(first, last);
+    dim_ = std::make_pair(1, sz);
+  }
+}
+
+template<typename T, typename Alloc>
+matrix<T, Alloc>::matrix(const matrix& m)
+    : base(alloc_traits::select_on_container_copy_construction(m.alloc_)),
+      dim_(m.shape()) {
+  size_type sz = m.size();
+  if (sz > 0) {
+    allocate_memory_(sz);
+    construct_at_end_(m.begin_, m.end_);
+  }
+}
+
+template<typename T, typename Alloc>
+inline
+matrix<T, Alloc>&
+matrix<T, Alloc>::operator=(const matrix& m) {
+  if (this != &m) {
+    base::copy_assign_alloc_(m);
+    assign_(m.begin_, m.end_);
+    dim_ = m.dim_;
+  }
+  return *this;
+}
+
+template<typename T, typename Alloc>
+inline
+matrix<T, Alloc>::matrix(matrix&& m) INSIGHT_NOEXCEPT_IF(
+    std::is_nothrow_move_constructible<allocator_type>::value)
+    :   base(std::move(m.alloc_)),
+        dim_(std::move(m.dim_/*this cannot throw?*/)) {
+  this->begin_ = m.begin_;
+  this->end_ = m.end_;
+  this->end_cap_ = m.end_cap_;
+  m.begin_ = m.end_ = m.end_cap_ = nullptr;
+}
+
+// TODO(Linh): If propagate_on_container_move_assignment is false,
+// then the `false` version of move_assign_ will be called, but
+// for this version to be nothrow we need alloc_traits::is_always_equal is
+// true, unforturenately this feature is only available since C++17?
+template<typename T, typename Alloc>
+inline
+matrix<T, Alloc>&
+matrix<T, Alloc>::operator=(matrix&& m) INSIGHT_NOEXCEPT_IF(
+    alloc_traits::propagate_on_container_move_assignment::value &&
+    std::is_nothrow_move_assignable<allocator_type>::value) {
+  move_assign_(m, std::integral_constant<bool, alloc_traits::propagate_on_container_move_assignment::value>());  // NOLINT
+  return *this;
+}
+
+template<typename T, typename Alloc>
+inline
+matrix<T, Alloc>::matrix(std::initializer_list<value_type> il)
+    : base(),
+      dim_() {
+  size_type sz = il.size();
+  if (sz > 0) {
+    allocate_memory_(sz);
+    construct_at_end_(il.begin(), il.end());
+    dim_ = std::make_pair(1, sz);
+  }
+}
+
+template<typename T, typename Alloc>
+inline
+matrix<T, Alloc>&
+matrix<T, Alloc>::operator=(std::initializer_list<value_type> il) {
+  assign_(il.begin(), il.end());
+  dim_ = std::make_pair(il.size() > 0 ? 1 : 0, il.size());
+  return *this;
+}
+
+template<typename T, typename Alloc>
+matrix<T, Alloc>::matrix(std::initializer_list<std::initializer_list<value_type> > il)  // NOLINT
+    : base(),
+      dim_() {
+  // Make sure all sub-lists are of the same size.
+  size_type sublist_size = static_cast<size_type>(il.begin()->size());
+  CHECK_GT(sublist_size, static_cast<size_type>(0));
+  CHECK(std::all_of(il.begin(), il.end(),
+                    [&](const std::initializer_list<value_type>& sublist) {
+                      return (sublist.size() == sublist_size);
+                    }))
+      << "matrix: invalid nested initializer list: all sublists must have "
+      << "the same number of elements";
+
+  size_type sz = sublist_size * il.size();
+  allocate_memory_(sz);
+  for (auto it = il.begin(); it != il.end(); ++it) {
+    construct_at_end_(it->begin(), it->end());
+  }
+  dim_ = std::make_pair(il.size(), sublist_size);
+}
+
+template<typename T, typename Alloc>
+matrix<T, Alloc>&
+matrix<T, Alloc>::operator=(std::initializer_list<std::initializer_list<value_type> > il) {  // NOLINT
+  // Make sure all sub-lists are of the same size.
+  size_type sublist_size = static_cast<size_type>(il.begin()->size());
+  CHECK_GT(sublist_size, static_cast<size_type>(0));
+  CHECK(std::all_of(il.begin(), il.end(),
+                    [&](const std::initializer_list<value_type>& sublist) {
+                      return (sublist.size() == sublist_size);
+                    }))
+      << "matrix: invalid nested initializer list: all sublists must have "
+      << "the same number of elements";
+
+  size_type new_size = il.size() * sublist_size;
+
+  if (new_size <= capacity()) {
+    // TODO(Linh): Technically speaking we have to contruct (not copy) from
+    // the range [end_, end_cap_). But we're only dealing with arithmetic
+    // types, right?
+    pointer mid = this->begin_;
+    for (auto it = il.begin(); it != il.end(); ++it) {
+      mid = std::copy(it->begin(), it->end(), mid);
+    }
+    this->end_ = mid;
+  } else {
+    deallocate_memory_();
+    allocate_memory_(new_size);
+    for (auto it = il.begin(); it != il.end(); ++it) {
+      construct_at_end_(it->begin(), it->end());
+    }
+  }
+  dim_ = std::make_pair(il.size(), sublist_size);
+  return *this;
+}
+
+template<typename T, typename Alloc>
+template<typename E>
+matrix<T, Alloc>::matrix(const linalg_detail::matrix_expression<E>& expr)
+    : base(),
+      dim_(expr.self().shape()) {
+  size_type sz = expr.self().size();
+  if (sz > 0) {
+    allocate_memory_(sz);
+    // construct_at_end_(expr.self().begin(), expr.self().end());
+    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::assign(expr.self(), this->begin_);  // NOLINT
+    this->end_ = this->begin_ + sz;
+  }
+}
+
+template<typename T, typename Alloc>
+template<typename E>
+matrix<T, Alloc>&
+matrix<T, Alloc>::operator=(const linalg_detail::matrix_expression<E>& expr) {
+  size_type new_size = expr.self().size();
+  if (new_size > capacity()) {
+    deallocate_memory_();
+    allocate_memory_(new_size);
+  }
+  linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::assign(expr.self(), this->begin_);  // NOLINT
+  this->end_ = this->begin_ + new_size;
+  dim_ = expr.self().shape();
+  return *this;
+}
+
+template<typename T, typename Alloc>
+inline
+typename matrix<T, Alloc>::size_type
+matrix<T, Alloc>::max_size() const INSIGHT_NOEXCEPT {
+  return std::min<size_type>(alloc_traits::max_size(this->alloc_),
+                             std::numeric_limits<difference_type>::max());
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::clear() INSIGHT_NOEXCEPT {
+  base::clear();
+  dim_ = std::make_pair(0, 0);
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::reshape(size_type new_row_count,
+                          size_type new_col_count) INSIGHT_NOEXCEPT {
+  if (!empty() && (new_row_count * new_col_count == size())) {
+    dim_ = std::make_pair(new_row_count, new_col_count);
+  }
+}
+
+template<typename T, typename Alloc>
+void
+matrix<T, Alloc>::swap(matrix& m) INSIGHT_NOEXCEPT_IF(
+    !alloc_traits::propagate_on_container_swap::value ||
+    internal::is_nothrow_swappable<allocator_type>::value) {
+  DCHECK(alloc_traits::propagate_on_container_swap::value ||
+        (this->alloc_ == m.alloc_))
+      << "matrix::swap Either propagate_on_container_swap must be true "
+      << "or the allocators must compare equal";
+  using std::swap;
+  swap(this->begin_, m.begin_);
+  swap(this->end_, m.end_);
+  swap(this->end_cap_, m.end_cap_);
+  swap(dim_, m.dim_);  // TODO(Linh): nothrow?
+  // The two allocators will be swapped iff propagate_on_container_swap is
+  // true, otherwise nothing happens (that's why we need them compare
+  // equal).
+  swap_allocator(this->alloc_, m.alloc_, std::integral_constant<bool, alloc_traits::propagate_on_container_swap::value>());  // NOLINT
+}
+
+// Allocate space for n objects.
+// throws length_error if n > max_size()
+// throws (probablY bad_alloc) if memory run out
+// Precondition: begin_ == end_ == end_cap_ == 0
+// Precondition: n > 0
+// Postcondition: capacity() == n
+// Postcondition: size() == 0
+template<typename T, typename Alloc>
+void
+matrix<T, Alloc>::allocate_memory_(size_type n) {
+  if (n > max_size())
+    this->throw_length_error("matrix::allocate_memory_(n): "
+                             "the requested size n is too large");
+  this->begin_ = this->end_ = alloc_traits::allocate(this->alloc_, n);
+  this->end_cap_ = this->begin_ + n;
+}
+
+// Deallocate memory.
+template<typename T, typename Alloc>
+void
+matrix<T, Alloc>::deallocate_memory_() INSIGHT_NOEXCEPT {
+  if (this->begin_ != nullptr) {
+    // TODO(Linh): Can we just skip the clear step since we're only dealing
+    // with arithmetic types?
+    clear();
+    alloc_traits::deallocate(this->alloc_, this->begin_, capacity());
+    this->begin_ = this->end_ = this->end_cap_ = nullptr;
+    dim_ = std::make_pair(0, 0);  // TODO(Linh): neccessary?
+  }
+}
+
+// Default constructs n objects starting at end_.
+// throws if constructions throws.
+// Precondition: n > 0
+// Precondition: size() + n <= capacity()
+// Postcondition: size() == size() + n
+template<typename T, typename Alloc>
+void
+matrix<T, Alloc>::construct_at_end_(size_type n) {
+  // TODO(Linh): Can we replace the do-while loop with std::fill since we're
+  // only dealing with arithmetic types? How about std::uninitialized_fill?
+  // do {
+  //   alloc_traits::construct(this->alloc_, this->end_);
+  //   ++this->end_;
+  //   --n;
+  // } while (n > 0);
+  this->end_ = this->begin_ + n;
+  std::fill(this->begin_, this->end_, value_type());
+}
+
+// Copy constructs n objects starting at end_ from value.
+// throws if construction throws.
+// Precondition: n > 0
+// Precondition: size() + n <= capacity().
+// Postcondition: size() = old size() + n
+// Postcondition: [i] == value for all i in [size() - n, size()]
+template<typename T, typename Alloc>
+void
+matrix<T, Alloc>::construct_at_end_(size_type n, const_reference value) {
+  // TODO(Linh): Can we replace the do-while loop with std::fill since we're
+  // only dealing with arithmetic types? How about std::uninitialized_fill?
+  // do {
+  //   alloc_traits::construct(this->alloc_, this->end_, value);
+  //   ++this->end_;
+  //   --n;
+  // } while (n > 0);
+  this->end_ = this->begin_ + n;
+  std::fill(this->begin_, this->end_, value);
+}
+
+template<typename T, typename Alloc>
+template<typename ForwardIter>
+typename
+std::enable_if<internal::is_forward_iterator<ForwardIter>::value, void>::type
+matrix<T, Alloc>::construct_at_end_(ForwardIter first, ForwardIter last) {
+  // TODO(Linh): Can we replace the do-while loop with std::copy since we're
+  // only dealing with arithmetic types? How about std::uninitialized_copy?
+  // for (; first != last; ++first, ++this->end_) {
+  //   alloc_traits::construct(this->alloc_, this->end_, *first);
+  // }
+  // Must be this->end_ for the third argument!!!
+  this->end_ = std::copy(first, last, this->end_);
+}
+
+// Replaces the contents of the buffer with that in the range [first, last).
+// Memory allocated if neccessary.
+template<typename T, typename Alloc>
+template<typename ForwardIter>
+typename
+std::enable_if<
+  internal::is_forward_iterator<ForwardIter>::value &&
+  std::is_constructible<
+    T,
+    typename std::iterator_traits<ForwardIter>::reference>::value,
+  void>::type
+matrix<T, Alloc>::assign_(ForwardIter first, ForwardIter last) {
+  size_type new_size = static_cast<size_type>(std::distance(first, last));
+  if (new_size <= capacity()) {
+    // ForwardIter mid = last;
+    // bool growing = false;
+    // if (new_size > size()) {
+    //   growing = true;
+    //   mid = first;
+    //   std::advance(mid, size());
+    // }
+    // pointer could_be_new_end = std::copy(first, mid, this->begin_);
+    // if (growing) {
+    //   construct_at_end_(mid, last);
+    // } else {
+    //   this->destruct_at_end_(could_be_new_end);
+    // }
+    this->end_ = std::copy(first, last, this->begin_);
+  } else {
+    deallocate_memory_();
+    allocate_memory_(new_size);
+    construct_at_end_(first, last);
+  }
+}
+
+template<typename T, typename Alloc>
+void
+matrix<T, Alloc>::move_assign_(matrix& m, std::true_type)  // NOLINT
+    INSIGHT_NOEXCEPT_IF(
+        std::is_nothrow_move_assignable<allocator_type>::value) {
+  deallocate_memory_();
+  base::move_assign_alloc_(m);
+  this->begin_ = m.begin_;
+  this->end_ = m.end_;
+  this->end_cap_ = m.end_cap_;
+  this->dim_ = m.dim_;  // TODO(Linh): or std::move(m.dim_)
+  m.begin_ = m.end_ = m.end_cap_ = nullptr;
+  m.dim_ = std::make_pair(0, 0);  // TODO(Linh): is it neccessary?
+}
+
+// TODO(Linh): This will be nothrow if alloc_traits::is_always_equal is true
+// but this feature is only available since C++17.
+template<typename T, typename Alloc>
+void
+matrix<T, Alloc>::move_assign_(matrix& m, std::false_type) {  // NOLINT
+  // when propagate_on_container_move_assignment is false allocator will be
+  // kept (no replacement happens) therefore we need to check to see wehther
+  // this's allocator and m's allocator are in deed the same.
+  if (this->alloc_ != m.alloc_) {
+    using MoveIter = std::move_iterator<iterator>;
+    // This can throw!
+    assign_(MoveIter(m.begin()), MoveIter(m.end()));
+    dim_ = m.dim_;
+  } else {
+    move_assign_(m, std::true_type());
+  }
+}
+
+// In addition to the public member swap, we also need a free swap function.
+template<typename T, typename Alloc>
+inline
+void swap(matrix<T, Alloc>& m1, matrix<T, Alloc>& m2) INSIGHT_NOEXCEPT_IF(
+    noexcept(m1.swap(m2))) {
   m1.swap(m2);
 }
 
-}  // namespace insight
 
+// matrix-scalar arithmetic.
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::mul_scalar_(const_reference scalar, std::true_type) {
+  internal::insight_scal(size(), scalar, this->begin_);
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::mul_scalar_(const_reference scalar, std::false_type) {
+  std::for_each(this->begin_, this->end_, [&](reference e) { e *= scalar; });
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::div_scalar_(const_reference scalar, std::true_type) {
+  internal::insight_scal(size(), value_type(1.0) / scalar, this->begin_);
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::div_scalar_(const_reference scalar, std::false_type) {
+  std::for_each(this->begin_, this->end_, [&](reference e) { e /= scalar; });
+}
+
+// matrix-matrix arithmetic.
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::add_matrix_(const matrix& m, std::true_type) {
+  internal::insight_add(size(), m.data(), this->begin_, this->begin_);
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::add_matrix_(const matrix& m, std::false_type) {
+  auto it = m.begin();
+  std::for_each(this->begin_, this->end_, [&](reference e) { e += *it++; });
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::sub_matrix_(const matrix& m, std::true_type) {
+  internal::insight_sub(size(), this->begin_, m.data(), this->begin_);
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::sub_matrix_(const matrix& m, std::false_type) {
+  auto it = m.begin();
+  std::for_each(this->begin_, this->end_, [&](reference e) { e -= *it++; });
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::mul_matrix_(const matrix& m, std::true_type) {
+  internal::insight_mul(size(), m.data(), this->begin_, this->begin_);
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::mul_matrix_(const matrix& m, std::false_type) {
+  auto it = m.begin();
+  std::for_each(this->begin_, this->end_, [&](reference e) { e *= *it++; });
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::div_matrix_(const matrix& m, std::true_type) {
+  internal::insight_div(size(), this->begin_, m.data(), this->begin_);
+}
+
+template<typename T, typename Alloc>
+inline
+void
+matrix<T, Alloc>::div_matrix_(const matrix& m, std::false_type) {
+  auto it = m.begin();
+  std::for_each(this->begin_, this->end_, [&](reference e) { e /= *it++; });
+}
+
+}  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_MATRIX_H_

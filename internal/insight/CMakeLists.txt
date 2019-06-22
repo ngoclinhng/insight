@@ -28,7 +28,7 @@ file(GLOB INSIGHT_INTERNAL_HEADER_FILES
 file(GLOB INSIGHT_PUBLIC_HEADER_FILES
   ${Insight_SOURCE_DIR}/include/insight/*.h
   ${Insight_SOURCE_DIR}/include/insight/linalg/*.h
-  ${Insight_SOURCE_DIR}/include/insight/linalg/type_traits/*.h)
+  ${Insight_SOURCE_DIR}/include/insight/linalg/detail/*.h)
 file(GLOB INSIGHT_PUBLIC_INTERNAL_HEADER_FILES
   ${Insight_SOURCE_DIR}/include/insight/internal/*.h)
 
@@ -180,10 +180,10 @@ if (BUILD_TESTING)
   insight_test(math_functions)
   insight_test(matrix)
   insight_test(vector)
-  insight_test(vector_arithmetic)
-  insight_test(matrix_arithmetic)
-  insight_test(matrix_vector_multiplication)
-  insight_test(transpose)
+  insight_test(jump_iterator)
+  insight_test(expression_traits)
+  insight_test(matrix_expression)
+  insight_test(transpose_iterator)
+  insight_test(transpose_expression)
   insight_test(row_view)
-  insight_test(col_view)
 endif (BUILD_TESTING)

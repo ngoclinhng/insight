@@ -14,413 +14,268 @@ namespace insight {
 using ::testing::ElementsAre;
 using ::testing::DoubleEq;
 
-TEST(vector, empty_constructor) {
-  vector<double> v;
+TEST(vector, default_constructor) {
+  vector<double> vec;
 
-  ASSERT_TRUE(v.empty());
-  ASSERT_EQ(v.size(), 0);
-  ASSERT_EQ(v.capacity(), 0);
+  EXPECT_TRUE(vec.empty());
+  EXPECT_EQ(vec.size(), 0);
 }
 
-TEST(vector, constructor_from_initializer_list) {
-  vector<double> v = {1, 2, 3, 4};
+TEST(vector, default_constructed_from_given_size) {
+  vector<double> v(5);
 
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 4);
-  ASSERT_EQ(v.capacity(), 4);
-  ASSERT_EQ(v.num_rows(), 4);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 4);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(1, 2, 3, 4));
+  EXPECT_FALSE(v.empty());
+  EXPECT_EQ(v.size(), 5);
+  EXPECT_THAT(v, ElementsAre(0, 0, 0, 0, 0));
+}
+
+TEST(vector, copy_constructed_from_given_value) {
+  vector<double> dvec(4, 0.5);
+
+  EXPECT_FALSE(dvec.empty());
+  EXPECT_EQ(dvec.size(), 4);
+  EXPECT_THAT(dvec, ElementsAre(0.5, 0.5, 0.5, 0.5));
+
+  vector<int> ivec(5, 10);
+
+  EXPECT_FALSE(ivec.empty());
+  EXPECT_EQ(ivec.size(), 5);
+  EXPECT_THAT(ivec, ElementsAre(10, 10, 10, 10, 10));
+}
+
+TEST(vector, construct_from_range) {
+  double ddata[6] = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  vector<double> dvec(ddata, ddata + 6);
+
+  EXPECT_FALSE(dvec.empty());
+  EXPECT_EQ(dvec.size(), 6);
+  EXPECT_THAT(dvec, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
+
+  int idata[4] = {10, 20, 30, 40};
+  vector<int> ivec(idata, idata + 4);
+
+  EXPECT_FALSE(ivec.empty());
+  EXPECT_EQ(ivec.size(), 4);
+  EXPECT_THAT(ivec, ElementsAre(10, 20, 30, 40));
+}
+
+TEST(vector, construct_from_initializer_list) {
+  vector<double> dvec = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+
+  EXPECT_FALSE(dvec.empty());
+  EXPECT_EQ(dvec.size(), 6);
+  EXPECT_THAT(dvec, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
+
+  vector<int> ivec = {10, 20, 30, 40};
+
+  EXPECT_FALSE(ivec.empty());
+  EXPECT_EQ(ivec.size(), 4);
+  EXPECT_THAT(ivec, ElementsAre(10, 20, 30, 40));
+}
+
+TEST(vector, copy_constructor) {
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  vector<double> y = {-0.5, 1.0, -1.5};
+
+  // Memory allocated
+  vector<double> z = x;
+
+  EXPECT_FALSE(z.empty());
+  EXPECT_EQ(z.size(), 6);
+  EXPECT_THAT(z, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
+
+  // No memory allocated.
+  z = y;
+
+  EXPECT_FALSE(z.empty());
+  EXPECT_EQ(z.size(), 3);
+  EXPECT_THAT(z, ElementsAre(-0.5, 1.0, -1.5));
 }
 
 TEST(vector, assignment_operator) {
-  vector<double> v;
-  vector<double> w = {10, 20, 30 , 40};
-  vector<double> x = {4, 6};
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  vector<double> y = {-0.5, 1.0, -1.5};
+  vector<double> z;
 
-  v = w;
+  // Memory allocated.
+  z = x;
 
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 4);
-  ASSERT_EQ(v.capacity(), 4);
-  ASSERT_EQ(v.num_rows(), 4);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 4);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(10, 20, 30, 40));
+  EXPECT_FALSE(z.empty());
+  EXPECT_EQ(z.size(), 6);
+  EXPECT_THAT(z, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
 
-  v = x;
+  // No memory allocated.
+  z = y;
 
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 2);
-  ASSERT_EQ(v.capacity(), 4);
-  ASSERT_EQ(v.num_rows(), 2);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 2);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(4, 6));
-
-  v = {1, 2, 3, 4};
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 4);
-  ASSERT_EQ(v.capacity(), 4);
-  ASSERT_EQ(v.num_rows(), 4);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 4);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(1, 2, 3, 4));
+  EXPECT_FALSE(z.empty());
+  EXPECT_EQ(z.size(), 3);
+  EXPECT_THAT(z, ElementsAre(-0.5, 1.0, -1.5));
 }
 
-TEST(vector, constructor_from_input_iterator_range) {
-  std::vector<double> vec = {1, 2, 3, 4};
-  vector<double> v(vec.begin(), vec.end());
+TEST(vector, add_scalar) {
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  x += 10.5;
 
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 4);
-  ASSERT_EQ(v.capacity(), 4);
-  ASSERT_EQ(v.num_rows(), 4);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 4);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(1, 2, 3, 4));
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(11, 11.5, 12, 12.5, 13, 13.5));
 
-  double data[5] = {10, 20, 30, 40, 50};
-  vector<double> w(data, data + 5);
+  vector<int> y = {10, 20, 30};
+  y += 5;
 
-  ASSERT_FALSE(w.empty());
-  ASSERT_EQ(w.size(), 5);
-  ASSERT_EQ(w.capacity(), 5);
-  ASSERT_EQ(w.num_rows(), 5);
-  ASSERT_EQ(w.num_cols(), 1);
-  ASSERT_EQ(w.shape().first, 5);
-  ASSERT_EQ(w.shape().second, 1);
-  ASSERT_THAT(w, ElementsAre(10, 20, 30, 40, 50));
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_THAT(y, ElementsAre(15, 25, 35));
 }
 
-TEST(vector, operator_plus_equal_scalar) {
-  vector<double> v = {1, 2, 3, 4, 5};
-  v += 2.0;
+TEST(vector, sub_scalar) {
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  x -= 0.5;
 
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(3, 4, 5, 6, 7));
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(0, 0.5, 1.0, 1.5, 2.0, 2.5));
 
-  vector<int> w = {10, 20, 30, 40, 50};
-  w += 2;
+  vector<int> y = {10, 20, 30};
+  y -= 5;
 
-  ASSERT_FALSE(w.empty());
-  ASSERT_EQ(w.size(), 5);
-  ASSERT_EQ(w.capacity(), 5);
-  ASSERT_EQ(w.num_rows(), 5);
-  ASSERT_EQ(w.num_cols(), 1);
-  ASSERT_EQ(w.shape().first, 5);
-  ASSERT_EQ(w.shape().second, 1);
-  ASSERT_THAT(w, ElementsAre(12, 22, 32, 42, 52));
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_THAT(y, ElementsAre(5, 15, 25));
 }
 
-TEST(vector, operator_minus_equal_scalar) {
-  vector<double> v = {1, 2, 3, 4, 5};
-  v -= 2.0;
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(-1, 0, 1, 2, 3));
+TEST(vector, mul_scalar) {
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  x *= 2.0;
+
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(1, 2, 3, 4, 5, 6));
+
+  vector<int> y = {10, 20, 30};
+  y *= 2;
+
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_THAT(y, ElementsAre(20, 40, 60));
 }
 
-TEST(vector, operator_times_equal_scalar) {
-  vector<double> v = {1, 2, 3, 4, 5};
-  v *= 10.0;
+TEST(vector, div_scalar) {
+  vector<double> x = {3, 9, 12, 21, 24, -9};
+  x /= 3.0;
 
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(10, 20, 30, 40, 50));
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(1, 3, 4, 7, 8, -3));
 
-  vector<int> w = {1, 2, 3, 4, 5};
-  w *= 2;
+  vector<int> y = {10, -20, 30};
+  y /= 10;
 
-  ASSERT_FALSE(w.empty());
-  ASSERT_EQ(w.size(), 5);
-  ASSERT_EQ(w.capacity(), 5);
-  ASSERT_EQ(w.num_rows(), 5);
-  ASSERT_EQ(w.num_cols(), 1);
-  ASSERT_EQ(w.shape().first, 5);
-  ASSERT_EQ(w.shape().second, 1);
-  ASSERT_THAT(w, ElementsAre(2, 4, 6, 8, 10));
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_THAT(y, ElementsAre(1, -2, 3));
 }
 
-TEST(vector, operator_divides_equal_scalar) {
-  vector<double> v = {10, 20, 30, 40, 50};
-  v /= 10.0;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(1, 2, 3, 4, 5));
-
-  vector<int> w = {2, 4, 6, 8, 10};
-  w /= 2;
-
-  ASSERT_FALSE(w.empty());
-  ASSERT_EQ(w.size(), 5);
-  ASSERT_EQ(w.capacity(), 5);
-  ASSERT_EQ(w.num_rows(), 5);
-  ASSERT_EQ(w.num_cols(), 1);
-  ASSERT_EQ(w.shape().first, 5);
-  ASSERT_EQ(w.shape().second, 1);
-  ASSERT_THAT(w, ElementsAre(1, 2, 3, 4, 5));
-}
-
-TEST(vector, operator_plus_equal_other_vector) {
-  vector<double> v = {1, 2, 3, 4, 5};
-  vector<double> w = {10, 20, 30, 40, 50};
-
-  v += w;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(11, 22, 33, 44, 55));
-
-  v += v;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(22, 44, 66, 88, 110));
-
-  vector<int> x = {1, 2, 3, 4, 5};
-  vector<int> y = {1, 3, 5, 7, 9};
+TEST(vector, add_vector) {
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  vector<double> y = {-1.5, 0, 2.5, 3, 4, 8};
 
   x += y;
 
-  ASSERT_FALSE(x.empty());
-  ASSERT_EQ(x.size(), 5);
-  ASSERT_EQ(x.capacity(), 5);
-  ASSERT_EQ(x.num_rows(), 5);
-  ASSERT_EQ(x.num_cols(), 1);
-  ASSERT_EQ(x.shape().first, 5);
-  ASSERT_EQ(x.shape().second, 1);
-  ASSERT_THAT(x, ElementsAre(2, 5, 8, 11, 14));
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(-1, 1, 4, 5, 6.5, 11));
 
-  x += x;
+  vector<int> a = {1, 2, 3, 4};
+  vector<int> b = {10, 20, 30, 40};
 
-  ASSERT_FALSE(x.empty());
-  ASSERT_EQ(x.size(), 5);
-  ASSERT_EQ(x.capacity(), 5);
-  ASSERT_EQ(x.num_rows(), 5);
-  ASSERT_EQ(x.num_cols(), 1);
-  ASSERT_EQ(x.shape().first, 5);
-  ASSERT_EQ(x.shape().second, 1);
-  ASSERT_THAT(x, ElementsAre(4, 10, 16, 22, 28));
+  a += b;
+
+  EXPECT_FALSE(a.empty());
+  EXPECT_EQ(a.size(), 4);
+  EXPECT_THAT(a, ElementsAre(11, 22, 33, 44));
 }
 
-TEST(vector, operator_minus_equal_other_vector) {
-  vector<double> v = {10, 20, 30, 40, 50};
-  vector<double> w = {1, 2, 3, 4, 5};
-
-  v -= w;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(9, 18, 27, 36, 45));
-
-  v -= v;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(0, 0, 0, 0, 0));
-
-  vector<int> x = {1, 2, 3, 4, 5};
-  vector<int> y = {1, 3, 5, 7, 9};
+TEST(vector, sub_vector) {
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  vector<double> y = {-1.5, 0, 2.5, 3, 4, 8};
 
   x -= y;
 
-  ASSERT_FALSE(x.empty());
-  ASSERT_EQ(x.size(), 5);
-  ASSERT_EQ(x.capacity(), 5);
-  ASSERT_EQ(x.num_rows(), 5);
-  ASSERT_EQ(x.num_cols(), 1);
-  ASSERT_EQ(x.shape().first, 5);
-  ASSERT_EQ(x.shape().second, 1);
-  ASSERT_THAT(x, ElementsAre(0, -1, -2, -3, -4));
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(2, 1, -1, -1, -1.5, -5));
 
-  x -= x;
+  vector<int> a = {1, 2, 3, 4};
+  vector<int> b = {10, 20, 30, 40};
 
-  ASSERT_FALSE(x.empty());
-  ASSERT_EQ(x.size(), 5);
-  ASSERT_EQ(x.capacity(), 5);
-  ASSERT_EQ(x.num_rows(), 5);
-  ASSERT_EQ(x.num_cols(), 1);
-  ASSERT_EQ(x.shape().first, 5);
-  ASSERT_EQ(x.shape().second, 1);
-  ASSERT_THAT(x, ElementsAre(0, 0, 0, 0, 0));
+  a -= b;
+
+  EXPECT_FALSE(a.empty());
+  EXPECT_EQ(a.size(), 4);
+  EXPECT_THAT(a, ElementsAre(-9, -18, -27, -36));
 }
 
-TEST(vector, operator_times_equal_other) {
-  vector<double> v = {1, 2, 3, 4, 5};
-  vector<double> w = {1, 3, 5, 7, 9};
-
-  v *= w;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(1, 6, 15, 28, 45));
-
-  w *= w;
-
-  ASSERT_FALSE(w.empty());
-  ASSERT_EQ(w.size(), 5);
-  ASSERT_EQ(w.capacity(), 5);
-  ASSERT_EQ(w.num_rows(), 5);
-  ASSERT_EQ(w.num_cols(), 1);
-  ASSERT_EQ(w.shape().first, 5);
-  ASSERT_EQ(w.shape().second, 1);
-  ASSERT_THAT(w, ElementsAre(1, 9, 25, 49, 81));
-
-  vector<int> x = {1, 2, 3, 4};
-  vector<int> y = {1, 3, 5, 7};;
+TEST(vector, mul_vector) {
+  vector<double> x = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
+  vector<double> y = {1.0, 0.2, 2.0, -3.0, 1.0, 5.0};
 
   x *= y;
 
-  ASSERT_FALSE(x.empty());
-  ASSERT_EQ(x.size(), 4);
-  ASSERT_EQ(x.capacity(), 4);
-  ASSERT_EQ(x.num_rows(), 4);
-  ASSERT_EQ(x.num_cols(), 1);
-  ASSERT_EQ(x.shape().first, 4);
-  ASSERT_EQ(x.shape().second, 1);
-  ASSERT_THAT(x, ElementsAre(1, 6, 15, 28));
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(0.5, 0.2, 3.0, -6, 2.5, 15));
 
-  y *= y;
+  vector<int> a = {1, 2, 3, 4, 5};
+  vector<int> b = {-5, 6, 7, 2, -3};
 
-  ASSERT_FALSE(y.empty());
-  ASSERT_EQ(y.size(), 4);
-  ASSERT_EQ(y.capacity(), 4);
-  ASSERT_EQ(y.num_rows(), 4);
-  ASSERT_EQ(y.num_cols(), 1);
-  ASSERT_EQ(y.shape().first, 4);
-  ASSERT_EQ(y.shape().second, 1);
-  ASSERT_THAT(y, ElementsAre(1, 9, 25, 49));
+  a *= b;
+
+  EXPECT_FALSE(a.empty());
+  EXPECT_EQ(a.size(), 5);
+  EXPECT_THAT(a, ElementsAre(-5, 12, 21, 8, -15));
 }
 
-TEST(vector, operator_divides_equal_other_vector) {
-  vector<double> v = {10, 20, 30, 40, 50};
-  vector<double> w = {2, 10, 3, 8, 10};
-
-  v /= w;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(5, 2, 10, 5, 5));
-
-  v /= v;
-
-  ASSERT_FALSE(v.empty());
-  ASSERT_EQ(v.size(), 5);
-  ASSERT_EQ(v.capacity(), 5);
-  ASSERT_EQ(v.num_rows(), 5);
-  ASSERT_EQ(v.num_cols(), 1);
-  ASSERT_EQ(v.shape().first, 5);
-  ASSERT_EQ(v.shape().second, 1);
-  ASSERT_THAT(v, ElementsAre(1, 1, 1, 1, 1));
-
-  vector<int> x = {10, 20, 30, 40};
-  vector<int> y = {2, 10, 3, 8};
+TEST(vector, div_vector) {
+  vector<double> x = {10, 20, 30, 40, 50, 60};
+  vector<double> y = {1, 2, 3, 4, 5, 6};
 
   x /= y;
 
-  ASSERT_FALSE(x.empty());
-  ASSERT_EQ(x.size(), 4);
-  ASSERT_EQ(x.capacity(), 4);
-  ASSERT_EQ(x.num_rows(), 4);
-  ASSERT_EQ(x.num_cols(), 1);
-  ASSERT_EQ(x.shape().first, 4);
-  ASSERT_EQ(x.shape().second, 1);
-  ASSERT_THAT(x, ElementsAre(5, 2, 10, 5));
+  EXPECT_FALSE(x.empty());
+  EXPECT_EQ(x.size(), 6);
+  EXPECT_THAT(x, ElementsAre(10, 10, 10, 10, 10, 10));
 
-  x /= x;
+  vector<int> a = {15, 26, 28};
+  vector<int> b = {3, 2, 7};
 
-  ASSERT_FALSE(x.empty());
-  ASSERT_EQ(x.size(), 4);
-  ASSERT_EQ(x.capacity(), 4);
-  ASSERT_EQ(x.num_rows(), 4);
-  ASSERT_EQ(x.num_cols(), 1);
-  ASSERT_EQ(x.shape().first, 4);
-  ASSERT_EQ(x.shape().second, 1);
-  ASSERT_THAT(x, ElementsAre(1, 1, 1, 1));
+  a /= b;
+
+  EXPECT_FALSE(a.empty());
+  EXPECT_EQ(a.size(), 3);
+  EXPECT_THAT(a, ElementsAre(5, 13, 4));
 }
 
-TEST(vector, norm2) {
-  vector<double> v = {3, 4, 0};
+TEST(vector, nrm2) {
+  vector<double> x = {3, 2, 2, 2, 2};
+  EXPECT_THAT(x.nrm2(), DoubleEq(5.0));
 
-  ASSERT_THAT(v.norm2(), DoubleEq(5));
-
-  vector<int> x = {3, 4};
-
-  ASSERT_EQ(x.norm2(), 5);
+  vector<int> a = {3, 4, 0};
+  EXPECT_EQ(a.nrm2(), 5);
 }
 
 TEST(vector, dot) {
-  vector<double> v = {1, 2, 3, 4, 5};
-  vector<double> w = {0, 10, -3, 4, 20};
+  vector<double> x = {1.5, 2, -0.5, 4, 3, 9};
+  vector<double> y = {1.0, -2.5, 1.5, 4, 6, 8};
 
-  ASSERT_THAT(v.dot(w), DoubleEq(127));
-  ASSERT_THAT(w.dot(v), DoubleEq(127));
+  EXPECT_THAT(x.dot(y), DoubleEq(101.75));
+  EXPECT_THAT(y.dot(x), DoubleEq(101.75));
 
-  vector<int> x = {-1, 2, 3};
-  vector<int> y = {10, 20, 30};
+  vector<int> a = {1, 2, 3};
+  vector<int> b = {10, 20, 30};
 
-  ASSERT_EQ(x.dot(y), 120);
-  ASSERT_EQ(y.dot(x), 120);
+  EXPECT_EQ(a.dot(b), 140);
+  EXPECT_EQ(b.dot(a), 140);
 }
 
 }  // namespace insight

@@ -15,4 +15,8 @@
 # define INSIGHT_EXPORT
 #endif
 
+#define INSIGHT_NOEXCEPT noexcept
+#define INSIGHT_NOEXCEPT_IF(x) noexcept(x)
+#define NO_RETURN [[noreturn]]
+
 #endif  // INCLUDE_INSIGHT_INTERNAL_PORT_H_

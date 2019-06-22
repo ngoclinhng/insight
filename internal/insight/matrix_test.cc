@@ -2,8 +2,10 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
+#include <utility>
+#include <vector>
+
 #include "insight/linalg/matrix.h"
-// #include "insight/linalg/evaluate.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -16,274 +18,479 @@ using ::testing::DoubleEq;
 TEST(matrix, default_constructor) {
   matrix<double> m;
 
-  ASSERT_TRUE(m.empty());
-  ASSERT_EQ(m.num_rows(), 0);
-  ASSERT_EQ(m.num_cols(), 0);
-  ASSERT_EQ(m.size(), 0);
-  ASSERT_EQ(m.capacity(), 0);
-  ASSERT_EQ(m.shape().first, 0);
-  ASSERT_EQ(m.shape().second, 0);
+  EXPECT_EQ(m.row_count(), 0);
+  EXPECT_EQ(m.col_count(), 0);
+  EXPECT_EQ(m.size(), 0);
+  EXPECT_TRUE(m.empty());
 }
 
-TEST(matrix, constructor_from_num_rows_and_num_cols) {
+TEST(matrix, default_constructed_with_given_shape) {
   matrix<double> m(2, 3);
 
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.size(), 6);
-  ASSERT_EQ(m.capacity(), 6);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 3);
-
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
   EXPECT_THAT(m, ElementsAre(0, 0, 0, 0, 0, 0));
 
-  matrix<double> m1(2, 1, 10.0);
+  matrix<int> A(std::make_pair(2, 3));
 
-  ASSERT_FALSE(m1.empty());
-  ASSERT_EQ(m1.num_rows(), 2);
-  ASSERT_EQ(m1.num_cols(), 1);
-  ASSERT_EQ(m1.size(), 2);
-  ASSERT_EQ(m1.capacity(), 2);
-  ASSERT_EQ(m1.shape().first, 2);
-  ASSERT_EQ(m1.shape().second, 1);
+  EXPECT_EQ(A.row_count(), 2);
+  EXPECT_EQ(A.col_count(), 3);
+  EXPECT_EQ(A.shape().first, 2);
+  EXPECT_EQ(A.shape().second, 3);
+  EXPECT_EQ(A.size(), 6);
+  EXPECT_FALSE(A.empty());
+  EXPECT_THAT(A, ElementsAre(0, 0, 0, 0, 0, 0));
+}
 
-  EXPECT_THAT(m1, ElementsAre(10, 10));
+TEST(matrix, copy_constructed_from_value) {
+  matrix<double> m(2, 3, 0.5);
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 0.5, 0.5, 0.5, 0.5, 0.5));
+
+  matrix<int> A(std::make_pair(2, 3), 10);
+
+  EXPECT_EQ(A.row_count(), 2);
+  EXPECT_EQ(A.col_count(), 3);
+  EXPECT_EQ(A.shape().first, 2);
+  EXPECT_EQ(A.shape().second, 3);
+  EXPECT_EQ(A.size(), 6);
+  EXPECT_FALSE(A.empty());
+  EXPECT_THAT(A, ElementsAre(10, 10, 10, 10, 10, 10));
+}
+
+TEST(matrix, construct_from_forward_range) {
+  std::vector<double> vec;
+  vec.push_back(0.5);
+  vec.push_back(1.5);
+  vec.push_back(2.0);
+
+  matrix<double> m(vec.begin(), vec.end());
+
+  EXPECT_EQ(m.row_count(), 1);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 1);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 3);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.5, 2.0));
+
+  double data[4] = {1.0, 2.0, 3.0, 4.0};
+  matrix<double> A(data, data + 4);
+
+  EXPECT_EQ(A.row_count(), 1);
+  EXPECT_EQ(A.col_count(), 4);
+  EXPECT_EQ(A.shape().first, 1);
+  EXPECT_EQ(A.shape().second, 4);
+  EXPECT_EQ(A.size(), 4);
+  EXPECT_FALSE(A.empty());
+  EXPECT_THAT(A, ElementsAre(1, 2, 3, 4));
 }
 
 TEST(matrix, copy_constructor) {
-  matrix<double> A(2, 3, 5.0);
-  matrix<double> B = A;
+  std::vector<double> vec = {0.5, 1.5, 2.0, 3.5, 4.0, 6.0};
+  matrix<double> m(vec.begin(), vec.end());
+  m.reshape(2, 3);
 
-  ASSERT_FALSE(B.empty());
-  ASSERT_EQ(B.num_rows(), 2);
-  ASSERT_EQ(B.num_cols(), 3);
-  ASSERT_EQ(B.shape().first, 2);
-  ASSERT_EQ(B.shape().second, 3);
-  ASSERT_EQ(B.size(), 6);
-  ASSERT_EQ(B.capacity(), 6);
-  EXPECT_THAT(B, ElementsAre(5, 5, 5, 5, 5, 5));
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.5, 2.0, 3.5, 4.0, 6.0));
 
-  B(0, 2) = 10.0;
-  B(1, 1) = 6.0;
+  matrix<double> m1 = m;
 
-  EXPECT_THAT(B, ElementsAre(5, 5, 10, 5, 6, 5));
-  EXPECT_THAT(A, ElementsAre(5, 5, 5, 5, 5, 5));
+  EXPECT_EQ(m1.row_count(), 2);
+  EXPECT_EQ(m1.col_count(), 3);
+  EXPECT_EQ(m1.shape().first, 2);
+  EXPECT_EQ(m1.shape().second, 3);
+  EXPECT_EQ(m1.size(), 6);
+  EXPECT_FALSE(m1.empty());
+  EXPECT_THAT(m1, ElementsAre(0.5, 1.5, 2.0, 3.5, 4.0, 6.0));
 }
 
 TEST(matrix, assignment_operator) {
-  matrix<double> A(3, 2, 4.0);
-  matrix<double> B(2, 2, 6.0);
+  std::vector<double> vec = {0.5, 1.5, 2.0, 3.5, 4.0, 6.0};
+  matrix<double> m1(vec.begin(), vec.end());
+  m1.reshape(2, 3);
 
-  matrix<double> C = A;
+  matrix<double> m = m1;
+  m.reshape(3, 2);
 
-  ASSERT_FALSE(C.empty());
-  ASSERT_EQ(C.num_rows(), 3);
-  ASSERT_EQ(C.num_cols(), 2);
-  ASSERT_EQ(C.shape().first, 3);
-  ASSERT_EQ(C.shape().second, 2);
-  ASSERT_EQ(C.size(), 6);
-  ASSERT_EQ(C.capacity(), 6);
-  EXPECT_THAT(C, ElementsAre(4, 4, 4, 4, 4, 4));
+  matrix<double> m2(vec.begin(), vec.begin() + 4);
+  m2.reshape(2, 2);
 
-  C = B;
+  // from bigger matrix to smaller one.
+  m1 = m2;
 
-  ASSERT_FALSE(C.empty());
-  ASSERT_EQ(C.num_rows(), 2);
-  ASSERT_EQ(C.num_cols(), 2);
-  ASSERT_EQ(C.shape().first, 2);
-  ASSERT_EQ(C.shape().second, 2);
-  ASSERT_EQ(C.size(), 4);
-  ASSERT_EQ(C.capacity(), 6);
-  EXPECT_THAT(C, ElementsAre(6, 6, 6, 6));
+  EXPECT_EQ(m1.row_count(), 2);
+  EXPECT_EQ(m1.col_count(), 2);
+  EXPECT_EQ(m1.shape().first, 2);
+  EXPECT_EQ(m1.shape().second, 2);
+  EXPECT_EQ(m1.size(), 4);
+  EXPECT_FALSE(m1.empty());
+  EXPECT_THAT(m1, ElementsAre(0.5, 1.5, 2.0, 3.5));
 
-  matrix<double> D;
-  D = A;
+  // From smaller matrix to bigger one.
+  m2 = m;
 
-  ASSERT_FALSE(D.empty());
-  ASSERT_EQ(D.num_rows(), 3);
-  ASSERT_EQ(D.num_cols(), 2);
-  ASSERT_EQ(D.shape().first, 3);
-  ASSERT_EQ(D.shape().second, 2);
-  ASSERT_EQ(D.size(), 6);
-  ASSERT_EQ(D.capacity(), 6);
-  EXPECT_THAT(D, ElementsAre(4, 4, 4, 4, 4, 4));
+  EXPECT_EQ(m2.row_count(), 3);
+  EXPECT_EQ(m2.col_count(), 2);
+  EXPECT_EQ(m2.shape().first, 3);
+  EXPECT_EQ(m2.shape().second, 2);
+  EXPECT_EQ(m2.size(), 6);
+  EXPECT_FALSE(m2.empty());
+  EXPECT_THAT(m2, ElementsAre(0.5, 1.5, 2.0, 3.5, 4.0, 6.0));
+}
+
+// Dummy function to test move constructor.
+matrix<double> create_2x2_matrix() {
+  std::vector<double> v = {0.5, 1.0, 1.5, 2.0};
+  matrix<double> m(v.begin(), v.end());
+  m.reshape(2, 2);
+  return m;
+}
+
+TEST(matrix, move_constructor) {
+  matrix<double> m = create_2x2_matrix();
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 2);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 2);
+  EXPECT_EQ(m.size(), 4);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.0, 1.5, 2.0));
+}
+
+TEST(matrix, swap) {
+  std::vector<double> vec = {0.5, 1.5, 2.0, 3.5, 4.0, 6.0};
+
+  matrix<double> m1(vec.begin(), vec.end());
+  m1.reshape(2, 3);
+
+  matrix<double> m2(vec.begin(), vec.begin() + 4);
+  m2.reshape(2, 2);
+
+  std::swap(m1, m2);
+
+  EXPECT_EQ(m1.row_count(), 2);
+  EXPECT_EQ(m1.col_count(), 2);
+  EXPECT_EQ(m1.shape().first, 2);
+  EXPECT_EQ(m1.shape().second, 2);
+  EXPECT_EQ(m1.size(), 4);
+  EXPECT_FALSE(m1.empty());
+  EXPECT_THAT(m1, ElementsAre(0.5, 1.5, 2.0, 3.5));
+
+  EXPECT_EQ(m2.row_count(), 2);
+  EXPECT_EQ(m2.col_count(), 3);
+  EXPECT_EQ(m2.shape().first, 2);
+  EXPECT_EQ(m2.shape().second, 3);
+  EXPECT_EQ(m2.size(), 6);
+  EXPECT_FALSE(m2.empty());
+  EXPECT_THAT(m2, ElementsAre(0.5, 1.5, 2.0, 3.5, 4.0, 6.0));
 }
 
 TEST(matrix, constructor_from_initializer_list) {
-  matrix<double> m = {10, 20, 30, 40};
+  matrix<double> m = {0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
 
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 1);
-  ASSERT_EQ(m.num_cols(), 4);
-  ASSERT_EQ(m.shape().first, 1);
-  ASSERT_EQ(m.shape().second, 4);
-  ASSERT_EQ(m.size(), 4);
-  ASSERT_EQ(m.capacity(), 4);
-  EXPECT_THAT(m, ElementsAre(10, 20, 30, 40));
-}
+  EXPECT_EQ(m.row_count(), 1);
+  EXPECT_EQ(m.col_count(), 6);
+  EXPECT_EQ(m.shape().first, 1);
+  EXPECT_EQ(m.shape().second, 6);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
 
-TEST(matrix, assignment_operator_from_initializer_list) {
-  matrix<double> m(2, 3);
+  m.reshape(2, 3);
 
-  m = {1, 2, 3};
-
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 1);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 1);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 3);
-  ASSERT_EQ(m.capacity(), 6);
-  EXPECT_THAT(m, ElementsAre(1, 2, 3));
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
 }
 
 TEST(matrix, constructor_from_nested_initializer_list) {
+  matrix<double> m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
+}
+
+TEST(matrix, operator_equal_nested_initializer_list) {
+  matrix<double> m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+
+  // assign to a smaller nested initializer_list
+  m = {{1, 2}, {3, 4}};
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 2);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 2);
+  EXPECT_EQ(m.size(), 4);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(1, 2, 3, 4));
+
+  // assign to a equal sized nested initializer_list
+  m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0));
+
+  // assign to a bigger nested initializer_list.
+  m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}, {3.5, 4.0, 4.5}};
+
+  EXPECT_EQ(m.row_count(), 3);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 3);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 9);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5));
+}
+
+TEST(matrix, clear) {
   matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
+  m.clear();
 
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 6);
-  ASSERT_EQ(m.capacity(), 6);
-  EXPECT_THAT(m, ElementsAre(1, 2, 3, 4, 5, 6));
+  EXPECT_EQ(m.row_count(), 0);
+  EXPECT_EQ(m.col_count(), 0);
+  EXPECT_EQ(m.shape().first, 0);
+  EXPECT_EQ(m.shape().second, 0);
+  EXPECT_EQ(m.size(), 0);
+  EXPECT_TRUE(m.empty());
 }
 
-TEST(matrix, assignment_operator_from_nested_initializer_list) {
-  matrix<double> m(2, 4, 10.0);
-  m = {{10, 20}, {30, 40}};
+TEST(matrix, plus_scalar) {
+  matrix<double> m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+  m += 0.5;
 
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 2);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 2);
-  ASSERT_EQ(m.size(), 4);
-  ASSERT_EQ(m.capacity(), 8);
-  EXPECT_THAT(m, ElementsAre(10, 20, 30, 40));
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(1.0, 1.5, 2.0, 2.5, 3.0, 3.5));
 
-  m = {{10, 20, 30}, {40, 50, 60}};
-
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 6);
-  ASSERT_EQ(m.capacity(), 8);
-  EXPECT_THAT(m, ElementsAre(10, 20, 30, 40, 50, 60));
-}
-
-TEST(matrix, row_at) {
-  matrix<double> m = {{1, 2}, {3, 4}, {5, 6}};
-  auto first_row = m.row_at(0);
-
-  // ASSERT_FALSE(first_row.empty());
-  ASSERT_EQ(first_row.num_rows(), 1);
-  ASSERT_EQ(first_row.num_cols(), 2);
-  ASSERT_EQ(first_row.shape().first, 1);
-  ASSERT_EQ(first_row.shape().second, 2);
-  ASSERT_EQ(first_row.size(), 2);
-  EXPECT_THAT(first_row, ElementsAre(1, 2));
-}
-
-
-TEST(matrix, operator_plus_equal_scalar) {
-  matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
-  m += 10.0;
-
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 6);
-  ASSERT_EQ(m.capacity(), 6);
-  EXPECT_THAT(m, ElementsAre(11, 12, 13, 14, 15, 16));
-
-  m.row_at(0) += 5.0;
-
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 6);
-  ASSERT_EQ(m.capacity(), 6);
-  EXPECT_THAT(m, ElementsAre(16, 17, 18, 14, 15, 16));
-
-  matrix<int> m1 = {{1, 2, 3}, {4, 5, 6}};
+  matrix<int> m1 = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
   m1 += 10;
 
-  ASSERT_FALSE(m1.empty());
-  ASSERT_EQ(m1.num_rows(), 2);
-  ASSERT_EQ(m1.num_cols(), 3);
-  ASSERT_EQ(m1.shape().first, 2);
-  ASSERT_EQ(m1.shape().second, 3);
-  ASSERT_EQ(m1.size(), 6);
-  ASSERT_EQ(m1.capacity(), 6);
-  EXPECT_THAT(m1, ElementsAre(11, 12, 13, 14, 15, 16));
-
-  m1.row_at(1) += 5.0;
-
-  ASSERT_FALSE(m1.empty());
-  ASSERT_EQ(m1.num_rows(), 2);
-  ASSERT_EQ(m1.num_cols(), 3);
-  ASSERT_EQ(m1.shape().first, 2);
-  ASSERT_EQ(m1.shape().second, 3);
-  ASSERT_EQ(m1.size(), 6);
-  ASSERT_EQ(m1.capacity(), 6);
-  EXPECT_THAT(m1, ElementsAre(11, 12, 13, 19, 20, 21));
+  EXPECT_EQ(m1.row_count(), 3);
+  EXPECT_EQ(m1.col_count(), 3);
+  EXPECT_EQ(m1.shape().first, 3);
+  EXPECT_EQ(m1.shape().second, 3);
+  EXPECT_EQ(m1.size(), 9);
+  EXPECT_FALSE(m1.empty());
+  EXPECT_THAT(m1, ElementsAre(11, 12, 13, 14, 15, 16, 17, 18, 19));
 }
 
-TEST(matrix, operator_minus_equal_scalar) {
+TEST(matrix, sub_scalar) {
+  matrix<double> m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+  m -= 0.5;
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.0, 0.5, 1.0, 1.5, 2.0, 2.5));
+
+  matrix<int> m1 = {{10, 20, 30}, {40, 50, 60}, {70, 80, 90}};
+  m1 -= 100;
+
+  EXPECT_EQ(m1.row_count(), 3);
+  EXPECT_EQ(m1.col_count(), 3);
+  EXPECT_EQ(m1.shape().first, 3);
+  EXPECT_EQ(m1.shape().second, 3);
+  EXPECT_EQ(m1.size(), 9);
+  EXPECT_FALSE(m1.empty());
+  EXPECT_THAT(m1, ElementsAre(-90, -80, -70, -60, -50, -40, -30, -20, -10));
+}
+
+TEST(matrix, mul_scalar) {
+  matrix<double> m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+  m *= 2.0;
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(1.0, 2.0, 3.0, 4.0, 5.0, 6.0));
+
+  matrix<int> m1 = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+  m1 *= 10;
+
+  EXPECT_EQ(m1.row_count(), 3);
+  EXPECT_EQ(m1.col_count(), 3);
+  EXPECT_EQ(m1.shape().first, 3);
+  EXPECT_EQ(m1.shape().second, 3);
+  EXPECT_EQ(m1.size(), 9);
+  EXPECT_FALSE(m1.empty());
+  EXPECT_THAT(m1, ElementsAre(10, 20, 30, 40, 50, 60, 70, 80, 90));
+}
+
+TEST(matrix, div_scalar) {
+  matrix<double> m = {{-5, 10, -15}, {20, 25, 30}};
+  m /= 10.0;
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(-0.5, 1.0, -1.5, 2.0, 2.5, 3.0));
+
+  matrix<int> m1 = {{10, 20, 30}, {40, 50, 60}, {70, 80, 90}};
+  m1 /= 10;
+
+  EXPECT_EQ(m1.row_count(), 3);
+  EXPECT_EQ(m1.col_count(), 3);
+  EXPECT_EQ(m1.shape().first, 3);
+  EXPECT_EQ(m1.shape().second, 3);
+  EXPECT_EQ(m1.size(), 9);
+  EXPECT_FALSE(m1.empty());
+  EXPECT_THAT(m1, ElementsAre(1, 2, 3, 4, 5, 6, 7, 8, 9));
+}
+
+TEST(matrix, add_matrix) {
+  matrix<double> m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+  matrix<double> m1 = {{1, 2, 3}, {4, 5, 6}};
+
+  m += m1;
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(1.5, 3, 4.5, 6, 7.5, 9));
+
+  matrix<int> A = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+  matrix<int> B = {{10, 20, 30}, {40, 50, 60}, {70, 80, 90}};
+
+  A += B;
+
+  EXPECT_EQ(A.row_count(), 3);
+  EXPECT_EQ(A.col_count(), 3);
+  EXPECT_EQ(A.shape().first, 3);
+  EXPECT_EQ(A.shape().second, 3);
+  EXPECT_EQ(A.size(), 9);
+  EXPECT_FALSE(A.empty());
+  EXPECT_THAT(A, ElementsAre(11, 22, 33, 44, 55, 66, 77, 88, 99));
+}
+
+TEST(matrix, sub_matrix) {
+  matrix<double> m = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+  matrix<double> m1 = {{1, 2, 3}, {4, 5, 6}};
+
+  m -= m1;
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(-0.5, -1.0, -1.5, -2, -2.5, -3));
+
+  matrix<int> A = {{10, 20, 30}, {40, 50, 60}, {70, 80, 90}};
+  matrix<int> B = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+
+  A -= B;
+
+  EXPECT_EQ(A.row_count(), 3);
+  EXPECT_EQ(A.col_count(), 3);
+  EXPECT_EQ(A.shape().first, 3);
+  EXPECT_EQ(A.shape().second, 3);
+  EXPECT_EQ(A.size(), 9);
+  EXPECT_FALSE(A.empty());
+  EXPECT_THAT(A, ElementsAre(9, 18, 27, 36, 45, 54, 63, 72, 81));
+}
+
+TEST(matrix, mul_matrix) {
   matrix<double> m = {{10, 20, 30}, {40, 50, 60}};
-  m -= 10.0;
+  matrix<double> m1 = {{0.1, 0.5, 0.7}, {0.2, -0.3, 0.4}};
 
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 6);
-  ASSERT_EQ(m.capacity(), 6);
-  EXPECT_THAT(m, ElementsAre(0, 10, 20, 30, 40, 50));
+  m *= m1;
 
-  m.row_at(0) -= 1.0;
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(1, 10, 21, 8, -15, 24));
 
-  ASSERT_FALSE(m.empty());
-  ASSERT_EQ(m.num_rows(), 2);
-  ASSERT_EQ(m.num_cols(), 3);
-  ASSERT_EQ(m.shape().first, 2);
-  ASSERT_EQ(m.shape().second, 3);
-  ASSERT_EQ(m.size(), 6);
-  ASSERT_EQ(m.capacity(), 6);
-  EXPECT_THAT(m, ElementsAre(-1, 9, 19, 30, 40, 50));
+  matrix<int> A = {{-1, -2, -3}, {4, 5, 6}, {1, 2, 3}};
+  matrix<int> B = {{3, 5, 7}, {0, 1, 2}, {-2, 3, 4}};
 
-  matrix<int> m1 = {{1, 2, 3}, {4, 5, 6}};
-  m1 -= 10;
+  A *= B;
 
-  ASSERT_FALSE(m1.empty());
-  ASSERT_EQ(m1.num_rows(), 2);
-  ASSERT_EQ(m1.num_cols(), 3);
-  ASSERT_EQ(m1.shape().first, 2);
-  ASSERT_EQ(m1.shape().second, 3);
-  ASSERT_EQ(m1.size(), 6);
-  ASSERT_EQ(m1.capacity(), 6);
-  EXPECT_THAT(m1, ElementsAre(-9, -8, -7, -6, -5, -4));
+  EXPECT_EQ(A.row_count(), 3);
+  EXPECT_EQ(A.col_count(), 3);
+  EXPECT_EQ(A.shape().first, 3);
+  EXPECT_EQ(A.shape().second, 3);
+  EXPECT_EQ(A.size(), 9);
+  EXPECT_FALSE(A.empty());
+  EXPECT_THAT(A, ElementsAre(-3, -10, -21, 0, 5, 12, -2, 6, 12));
+}
 
-  m1.row_at(1) -= 5.0;
+TEST(matrix, div_matrix) {
+  matrix<double> m = {{1, 2, 3}, {4, 5, 6}};
+  matrix<double> m1(m.shape(), 10.0);
 
-  ASSERT_FALSE(m1.empty());
-  ASSERT_EQ(m1.num_rows(), 2);
-  ASSERT_EQ(m1.num_cols(), 3);
-  ASSERT_EQ(m1.shape().first, 2);
-  ASSERT_EQ(m1.shape().second, 3);
-  ASSERT_EQ(m1.size(), 6);
-  ASSERT_EQ(m1.capacity(), 6);
-  EXPECT_THAT(m1, ElementsAre(-9, -8, -7, -11, -10, -9));
+  m /= m1;
+
+  EXPECT_EQ(m.row_count(), 2);
+  EXPECT_EQ(m.col_count(), 3);
+  EXPECT_EQ(m.shape().first, 2);
+  EXPECT_EQ(m.shape().second, 3);
+  EXPECT_EQ(m.size(), 6);
+  EXPECT_FALSE(m.empty());
+  EXPECT_THAT(m, ElementsAre(0.1, 0.2, 0.3, 0.4, 0.5, 0.6));
+
+  matrix<int> A = {{2, 4, 9}, {10, 15, 16}, {21, 36, 40}};
+  matrix<int> B = {{2, 2, 3}, {2, 5, 8}, {3, 6, 10}};
+
+  A /= B;
+
+  EXPECT_EQ(A.row_count(), 3);
+  EXPECT_EQ(A.col_count(), 3);
+  EXPECT_EQ(A.shape().first, 3);
+  EXPECT_EQ(A.shape().second, 3);
+  EXPECT_EQ(A.size(), 9);
+  EXPECT_FALSE(A.empty());
+  EXPECT_THAT(A, ElementsAre(1, 2, 3, 5, 3, 2, 7, 6, 4));
 }
 
 }  // namespace insight
