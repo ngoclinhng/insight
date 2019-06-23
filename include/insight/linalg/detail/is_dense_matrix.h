@@ -10,9 +10,13 @@
 namespace insight {
 
 // Forward declaration of the matrix class.
+template<typename T, typename A> class vector;
 template<typename T, typename A> class matrix;
 
 namespace linalg_detail {
+
+template<typename E> struct row_view;
+template<typename E> struct transpose_expression;
 
 // Is E a dense matrix but not a matrix expression?
 
@@ -29,11 +33,14 @@ struct is_dense_matrix<insight::matrix<T, A> >: public std::true_type{};
 
 // Since we have only one kind of vector which is column vector, so
 // a particular row of a dense matrix is also a dense matrix.
-template<typename E> struct row_view;
 template<typename T, typename A>
 struct is_dense_matrix<
   row_view<insight::matrix<T, A> > > : public std::true_type{};
 
+// Transpose of a dense vector is also a dense matrix.
+template<typename T, typename A>
+struct is_dense_matrix<transpose_expression<insight::vector<T, A> > >
+    : public std::true_type{};
 
 }  // namespace linalg_detail
 }  // namespace insight

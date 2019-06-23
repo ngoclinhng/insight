@@ -227,6 +227,112 @@ struct expression_evaluator<E, expression_category::xdy> {
   }
 };
 
+// Evaluate sqrt(x) where x is a floating-point, dense matrix/vector.
+template<typename E>
+struct expression_evaluator<E, expression_category::sqrt> {
+  using value_type = typename E::value_type;
+
+  // y = sqrt(x)
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_sqrt(expr.size(), expr.e.begin(), buffer);
+  }
+
+  // y += sqrt(x)
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // y -= sqrt(x)
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // y *= sqrt(x)
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // y /= sqrt(x)
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+// Evaluate exp(x) where x is a floating-point, dense matrix/vector.
+template<typename E>
+struct expression_evaluator<E, expression_category::exp> {
+  using value_type = typename E::value_type;
+
+  // y = exp(x)
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_exp(expr.size(), expr.e.begin(), buffer);
+  }
+
+  // y += exp(x)
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // y -= exp(x)
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // y *= exp(x)
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // y /= exp(x)
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
+
+// Evaluate log(x) where x is a floating-point, dense matrix/vector.
+template<typename E>
+struct expression_evaluator<E, expression_category::log> {
+  using value_type = typename E::value_type;
+
+  // y = log(x)
+  inline static void assign(const E& expr, value_type* buffer) {
+    internal::insight_log(expr.size(), expr.e.begin(), buffer);
+  }
+
+  // y += log(x)
+  inline static void add(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ += e; });
+  }
+
+  // y -= log(x)
+  inline static void sub(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ -= e; });
+  }
+
+  // y *= log(x)
+  inline static void mul(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ *= e; });
+  }
+
+  // y /= log(x)
+  inline static void div(const E& expr, value_type* buffer) {
+    std::for_each(expr.begin(), expr.end(),
+                  [&](const value_type& e) { *buffer++ /= e; });
+  }
+};
+
 }  // namespace linalg_detail
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_LINALG_DETAIL_EXPRESSION_EVALUATOR_H_
