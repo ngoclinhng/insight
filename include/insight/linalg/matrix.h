@@ -301,7 +301,8 @@ class matrix
   inline matrix& operator+=(const linalg_detail::matrix_expression<E>& expr) {
     CHECK_EQ(row_count(), expr.self().row_count());
     CHECK_EQ(col_count(), expr.self().col_count());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::add(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.add(this->begin_);
     return *this;
   }
 
@@ -309,7 +310,8 @@ class matrix
   inline matrix& operator-=(const linalg_detail::matrix_expression<E>& expr) {
     CHECK_EQ(row_count(), expr.self().row_count());
     CHECK_EQ(col_count(), expr.self().col_count());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::sub(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.sub(this->begin_);
     return *this;
   }
 
@@ -317,7 +319,8 @@ class matrix
   inline matrix& operator*=(const linalg_detail::matrix_expression<E>& expr) {
     CHECK_EQ(row_count(), expr.self().row_count());
     CHECK_EQ(col_count(), expr.self().col_count());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::mul(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.mul(this->begin_);
     return *this;
   }
 
@@ -325,7 +328,8 @@ class matrix
   inline matrix& operator/=(const linalg_detail::matrix_expression<E>& expr) {
     CHECK_EQ(row_count(), expr.self().row_count());
     CHECK_EQ(col_count(), expr.self().col_count());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::div(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.div(this->begin_);
     return *this;
   }
 
@@ -608,7 +612,8 @@ matrix<T, Alloc>::matrix(const linalg_detail::matrix_expression<E>& expr)
   if (sz > 0) {
     allocate_memory_(sz);
     // construct_at_end_(expr.self().begin(), expr.self().end());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::assign(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.assign(this->begin_);
     this->end_ = this->begin_ + sz;
   }
 }
@@ -622,7 +627,8 @@ matrix<T, Alloc>::operator=(const linalg_detail::matrix_expression<E>& expr) {
     deallocate_memory_();
     allocate_memory_(new_size);
   }
-  linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::assign(expr.self(), this->begin_);  // NOLINT
+  linalg_detail::expression_evaluator<E> evaluator(expr.self());
+  evaluator.assign(this->begin_);
   this->end_ = this->begin_ + new_size;
   dim_ = expr.self().shape();
   return *this;

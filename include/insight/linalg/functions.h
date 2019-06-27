@@ -18,6 +18,7 @@ namespace linalg_detail {
 template<typename E, typename F> struct unary_expression;
 template<typename Derived> struct vector_expression;
 template<typename Derived> struct matrix_expression;
+template<typename M, typename V, typename Enable> class matmul_expression;
 }  // linalg_detail
 
 // Transcendental functions on vectors.
@@ -87,14 +88,13 @@ log(const linalg_detail::matrix_expression<E>& e) {
 // matmul.
 
 // generic matrix-vector multiplication.
-// template<typename M, typename V>
-// inline
-// matmul_expression<M, V, void>
-// matmul(const linalg_detail::matrix_expression<M>& me, const linalg_detail::vector_expression<V>& ve) {
-//   CHECK_EQ(me.self().num_cols(), ve.self().num_rows())
-//       << "mismatched dimensions for matrix-vector multiplication";
-//   return matmul_expression<M, V, void>(me.self(), ve.self());
-// }
+template<typename M, typename V>
+inline
+linalg_detail::matmul_expression<M, V, void>
+matmul(const linalg_detail::matrix_expression<M>& me,
+       const linalg_detail::vector_expression<V>& ve) {
+  return linalg_detail::matmul_expression<M, V, void>(me.self(), ve.self());
+}
 
 // // generic matrix-matrix multiplication.
 // template<typename M1, typename M2>

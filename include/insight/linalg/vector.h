@@ -252,28 +252,32 @@ class vector
   template<typename E>
   inline vector& operator+=(const linalg_detail::vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::add(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.add(this->begin_);
     return *this;
   }
 
   template<typename E>
   inline vector& operator-=(const linalg_detail::vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::sub(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.sub(this->begin_);
     return *this;
   }
 
   template<typename E>
   inline vector& operator*=(const linalg_detail::vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::mul(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.mul(this->begin_);
     return *this;
   }
 
   template<typename E>
   inline vector& operator/=(const linalg_detail::vector_expression<E>& expr) {
     CHECK_EQ(size(), expr.self().size());
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::div(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.div(this->begin_);
     return *this;
   }
 
@@ -462,7 +466,8 @@ vector<T, Alloc>::vector(const linalg_detail::vector_expression<E>& expr) {
   size_type n = expr.self().size();
   if (n > 0) {
     allocate_memory_(n);
-    linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::assign(expr.self(), this->begin_);  // NOLINT
+    linalg_detail::expression_evaluator<E> evaluator(expr.self());
+    evaluator.assign(this->begin_);
     this->end_ = this->begin_ + n;
   }
 }
@@ -476,7 +481,8 @@ vector<T, Alloc>::operator=(const linalg_detail::vector_expression<E>& expr) {
     deallocate_memory_();
     allocate_memory_(new_size);
   }
-  linalg_detail::expression_evaluator<E, typename linalg_detail::expression_traits<E>::category>::assign(expr.self(), this->begin_);  // NOLINT
+  linalg_detail::expression_evaluator<E> evaluator(expr.self());
+  evaluator.assign(this->begin_);
   this->end_ = this->begin_ + new_size;
   return *this;
 }
