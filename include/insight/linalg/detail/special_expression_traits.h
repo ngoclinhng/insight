@@ -299,6 +299,12 @@ struct matmul_aAbx_wrapper {
   }
 };
 
+template<typename M, typename V>
+inline
+matmul_aAbx_wrapper<M, V>
+make_matmul_aAbx_wrapper(const matmul_expression<M, V>& expr) {
+  return matmul_aAbx_wrapper<M, V>(expr);
+}
 
 // matmul(a * A.t(), bx)
 
@@ -386,6 +392,63 @@ struct matmul_aAtbx_wrapper {
     return expr.v.data();
   }
 };
+
+template<typename M, typename V>
+inline
+matmul_aAtbx_wrapper<M, V>
+make_matmul_aAtbx_wrapper(const matmul_expression<M, V>& expr) {
+  return matmul_aAtbx_wrapper<M, V>(expr);
+}
+
+// alpha * matmul(aA, bx).
+
+template<typename E>
+struct is_alpha_times_matmul_aAbx : public std::false_type{};
+
+template<typename E, typename T>
+struct is_alpha_times_matmul_aAbx<
+  binary_expression<E, T, std::multiplies<T> > >
+    : public std::conditional<
+  is_matmul_aAbx<E>::value &&
+  std::is_floating_point<T>::value &&
+  std::is_same<typename E::value_type, T>::value,
+  std::true_type,
+  std::false_type>::type{};
+
+template<typename E, typename T>
+struct is_alpha_times_matmul_aAbx<
+  binary_expression<T, E, std::multiplies<T> > >
+    : public std::conditional<
+  is_matmul_aAbx<E>::value &&
+  std::is_floating_point<T>::value &&
+  std::is_same<typename E::value_type, T>::value,
+  std::true_type,
+  std::false_type>::type{};
+
+// alpha * matmul(aA.t(), bx)
+
+template<typename E>
+struct is_alpha_times_matmul_aAtbx : public std::false_type{};
+
+template<typename E, typename T>
+struct is_alpha_times_matmul_aAtbx<
+  binary_expression<E, T, std::multiplies<T> > >
+    : public std::conditional<
+  is_matmul_aAtbx<E>::value &&
+  std::is_floating_point<T>::value &&
+  std::is_same<typename E::value_type, T>::value,
+  std::true_type,
+  std::false_type>::type{};
+
+template<typename E, typename T>
+struct is_alpha_times_matmul_aAtbx<
+  binary_expression<T, E, std::multiplies<T> > >
+    : public std::conditional<
+  is_matmul_aAtbx<E>::value &&
+  std::is_floating_point<T>::value &&
+  std::is_same<typename E::value_type, T>::value,
+  std::true_type,
+  std::false_type>::type{};
 }  // namespace special_expression
 }  // namespace linalg_detail
 }  // namespace insight

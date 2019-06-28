@@ -294,6 +294,76 @@ TEST(matmul_expression, float_A_transpose_times_x) {
   EXPECT_THAT(y, ElementsAre(-4, -5, -6));
 }
 
+TEST(matmul_expression, alpha_times_matmul_aAbx) {
+  matrix<double> A = {{0.5, 1.0, 1.5, 2.0},
+                      {2.5, 3.0, 3.5, 4.0},
+                      {4.5, 5.0, 5.5, 6.0}};
+  vector<double> x = {0, -1, 0.5, 1};
 
+  vector<double> y = 2.0 * matmul(A, x);
+
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_EQ(y.row_count(), 3);
+  EXPECT_EQ(y.col_count(), 1);
+  EXPECT_EQ(y.shape().first, 3);
+  EXPECT_EQ(y.shape().second, 1);
+  EXPECT_THAT(y, ElementsAre(3.5, 5.5, 7.5));
+
+  y += matmul(A, x) * 2.0;
+
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_EQ(y.row_count(), 3);
+  EXPECT_EQ(y.col_count(), 1);
+  EXPECT_EQ(y.shape().first, 3);
+  EXPECT_EQ(y.shape().second, 1);
+  EXPECT_THAT(y, ElementsAre(7, 11, 15));
+
+  y -= 2.0 * matmul(A, 3.0 * x);
+
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_EQ(y.row_count(), 3);
+  EXPECT_EQ(y.col_count(), 1);
+  EXPECT_EQ(y.shape().first, 3);
+  EXPECT_EQ(y.shape().second, 1);
+  EXPECT_THAT(y, ElementsAre(-3.5, -5.5, -7.5));
+}
+
+TEST(matmul_expression, alpha_times_matmul_aAtbx) {
+  matrix<double> A = {{0.5, 1.0, 1.5}, {2.0, 2.5, 3.0}};
+  vector<double> x = {0, -2};
+
+  vector<double> y = 2.0 * matmul(A.t(), x);
+
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_EQ(y.row_count(), 3);
+  EXPECT_EQ(y.col_count(), 1);
+  EXPECT_EQ(y.shape().first, 3);
+  EXPECT_EQ(y.shape().second, 1);
+  EXPECT_THAT(y, ElementsAre(-8, -10, -12));
+
+  y += matmul(A.t(), -2.0 * x) * 2.0;
+
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_EQ(y.row_count(), 3);
+  EXPECT_EQ(y.col_count(), 1);
+  EXPECT_EQ(y.shape().first, 3);
+  EXPECT_EQ(y.shape().second, 1);
+  EXPECT_THAT(y, ElementsAre(8, 10, 12));
+
+  y -= 0.5 * matmul(A.t(), x);
+
+  EXPECT_FALSE(y.empty());
+  EXPECT_EQ(y.size(), 3);
+  EXPECT_EQ(y.row_count(), 3);
+  EXPECT_EQ(y.col_count(), 1);
+  EXPECT_EQ(y.shape().first, 3);
+  EXPECT_EQ(y.shape().second, 1);
+  EXPECT_THAT(y, ElementsAre(10, 12.5, 15));
+}
 
 }  // namespace insight

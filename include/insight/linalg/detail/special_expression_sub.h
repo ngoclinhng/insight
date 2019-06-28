@@ -15,7 +15,9 @@ template<typename E> struct is_special_subtractable
     : public std::conditional<
   special_expression::is_ax<E>::value ||
   special_expression::is_matmul_aAbx<E>::value ||
-  special_expression::is_matmul_aAtbx<E>::value,
+  special_expression::is_matmul_aAtbx<E>::value ||
+  special_expression::is_alpha_times_matmul_aAbx<E>::value ||
+  special_expression::is_alpha_times_matmul_aAtbx<E>::value,
   std::true_type,
   std::false_type>::type{};
 
@@ -62,6 +64,42 @@ void sub(const matmul_expression<M, V>& expr,
                          wrapper.A_row_count(),
                          wrapper.A_col_count(),
                          -(wrapper.a() * wrapper.b()),
+                         wrapper.A(),
+                         wrapper.x(),
+                         value_type(1.0),
+                         buffer);
+}
+
+// buffer -= alpha * matmul(aA, bx).
+template<typename E>
+inline
+void sub(const E& expr, typename E::value_type* buffer,
+         typename std::enable_if<
+         is_alpha_times_matmul_aAbx<E>::value>::type* = 0) {
+  using value_type = typename E::value_type;
+  auto wrapper = make_matmul_aAbx_wrapper(expr.e);
+  internal::insight_gemv(CblasNoTrans,
+                         wrapper.A_row_count(),
+                         wrapper.A_col_count(),
+                         -wrapper.a() * wrapper.b() * expr.scalar,
+                         wrapper.A(),
+                         wrapper.x(),
+                         value_type(1.0),
+                         buffer);
+}
+
+// buffer -= alpha * matmul(aA.t(), bx).
+template<typename E>
+inline
+void sub(const E& expr, typename E::value_type* buffer,
+         typename std::enable_if<
+         is_alpha_times_matmul_aAtbx<E>::value>::type* = 0) {
+  using value_type = typename E::value_type;
+  auto wrapper = make_matmul_aAtbx_wrapper(expr.e);
+  internal::insight_gemv(CblasTrans,
+                         wrapper.A_row_count(),
+                         wrapper.A_col_count(),
+                         -wrapper.a() * wrapper.b() * expr.scalar,
                          wrapper.A(),
                          wrapper.x(),
                          value_type(1.0),
