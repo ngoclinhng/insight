@@ -9,8 +9,8 @@
 #include <iterator>
 #include <type_traits>
 
-#include "insight/internal/unary_transform_iterator.h"
-#include "insight/internal/binary_transform_iterator.h"
+#include "insight/linalg/detail/unary_transform_iterator.h"
+#include "insight/linalg/detail/binary_transform_iterator.h"
 
 #include "glog/logging.h"
 
@@ -53,9 +53,9 @@ struct binary_expression : public std::conditional<
   using shape_type = typename E1::shape_type;
   using functor_type = F;
   using const_iterator =
-      internal::binary_transform_iterator<typename E1::const_iterator,
-                                          typename E2::const_iterator,
-                                          functor_type>;
+      binary_transform_iterator<typename E1::const_iterator,
+                                typename E2::const_iterator,
+                                functor_type>;
   using iterator = const_iterator;
 
   const E1& e1;
@@ -93,21 +93,19 @@ struct binary_expression : public std::conditional<
   // Iterator.
 
   inline const_iterator begin() const {
-    return internal::make_binary_transform_iterator(e1.cbegin(), e2.cbegin(),
-                                                    f);
+    return make_binary_transform_iterator(e1.cbegin(), e2.cbegin(), f);
   }
 
   inline const_iterator cbegin() const {
-    return internal::make_binary_transform_iterator(e1.cbegin(), e2.cbegin(),
-                                                    f);
+    return make_binary_transform_iterator(e1.cbegin(), e2.cbegin(), f);
   }
 
   inline const_iterator end() const {
-    return internal::make_binary_transform_iterator(e1.cend(), e2.end(), f);
+    return make_binary_transform_iterator(e1.cend(), e2.end(), f);
   }
 
   inline const_iterator cend() const  {
-    return internal::make_binary_transform_iterator(e1.cend(), e2.end(), f);
+    return make_binary_transform_iterator(e1.cend(), e2.end(), f);
   }
 };
 
@@ -155,29 +153,29 @@ struct binary_expression<E, typename E::value_type, F>
     return transpose_expression<self>(*this);
   }
 
-  using const_iterator = internal::unary_transform_iterator<
+  using const_iterator = unary_transform_iterator<
     typename E::const_iterator,
     decltype(std::bind(f, std::placeholders::_1, scalar))>;
   using iterator = const_iterator;
 
   inline const_iterator begin() const {
     auto u = std::bind(f, std::placeholders::_1, scalar);
-    return internal::make_unary_transform_iterator(e.cbegin(), u);
+    return make_unary_transform_iterator(e.cbegin(), u);
   }
 
   inline const_iterator cbegin() const {
     auto u = std::bind(f, std::placeholders::_1, scalar);
-    return internal::make_unary_transform_iterator(e.cbegin(), u);
+    return make_unary_transform_iterator(e.cbegin(), u);
   }
 
   inline const_iterator end() const {
     auto u = std::bind(f, std::placeholders::_1, scalar);
-    return internal::make_unary_transform_iterator(e.cend(), u);
+    return make_unary_transform_iterator(e.cend(), u);
   }
 
   inline const_iterator cend() const  {
     auto u = std::bind(f, std::placeholders::_1, scalar);
-    return internal::make_unary_transform_iterator(e.cend(), u);
+    return make_unary_transform_iterator(e.cend(), u);
   }
 };
 
@@ -225,29 +223,29 @@ struct binary_expression<typename E::value_type, E, F>
     return transpose_expression<self>(*this);
   }
 
-  using const_iterator = internal::unary_transform_iterator<
+  using const_iterator = unary_transform_iterator<
     typename E::const_iterator,
     decltype(std::bind(f, scalar, std::placeholders::_1))>;
   using iterator = const_iterator;
 
   inline const_iterator begin() const {
     auto u = std::bind(f, scalar, std::placeholders::_1);
-    return internal::make_unary_transform_iterator(e.cbegin(), u);
+    return make_unary_transform_iterator(e.cbegin(), u);
   }
 
   inline const_iterator cbegin() const {
     auto u = std::bind(f, scalar, std::placeholders::_1);
-    return internal::make_unary_transform_iterator(e.cbegin(), u);
+    return make_unary_transform_iterator(e.cbegin(), u);
   }
 
   inline const_iterator end() const {
     auto u = std::bind(f, scalar, std::placeholders::_1);
-    return internal::make_unary_transform_iterator(e.cend(), u);
+    return make_unary_transform_iterator(e.cend(), u);
   }
 
   inline const_iterator cend() const  {
     auto u = std::bind(f, scalar, std::placeholders::_1);
-    return internal::make_unary_transform_iterator(e.cend(), u);
+    return make_unary_transform_iterator(e.cend(), u);
   }
 };
 
@@ -268,7 +266,7 @@ struct unary_expression
   using size_type = typename E::size_type;
   using shape_type = typename E::shape_type;
   using functor_type = F;
-  using const_iterator = internal::unary_transform_iterator<
+  using const_iterator = unary_transform_iterator<
     typename E::const_iterator, F>;
   using iterator = const_iterator;
 
@@ -296,19 +294,19 @@ struct unary_expression
   }
 
   inline const_iterator begin() const {
-    return internal::make_unary_transform_iterator(e.cbegin(), f);
+    return make_unary_transform_iterator(e.cbegin(), f);
   }
 
   inline const_iterator cbegin() const {
-    return internal::make_unary_transform_iterator(e.cbegin(), f);
+    return make_unary_transform_iterator(e.cbegin(), f);
   }
 
   inline const_iterator end() const {
-    return internal::make_unary_transform_iterator(e.cend(), f);
+    return make_unary_transform_iterator(e.cend(), f);
   }
 
   inline const_iterator cend() const  {
-    return internal::make_unary_transform_iterator(e.cend(), f);
+    return make_unary_transform_iterator(e.cend(), f);
   }
 };
 

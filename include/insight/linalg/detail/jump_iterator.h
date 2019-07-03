@@ -2,13 +2,13 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_INTERNAL_JUMP_ITERATOR_H_
-#define INCLUDE_INSIGHT_INTERNAL_JUMP_ITERATOR_H_
+#ifndef INCLUDE_INSIGHT_LINALG_DETAIL_JUMP_ITERATOR_H_
+#define INCLUDE_INSIGHT_LINALG_DETAIL_JUMP_ITERATOR_H_
 
 #include <iterator>
 
 namespace insight {
-namespace internal {
+namespace linalg_detail {
 
 template<typename Iter>
 class jump_iterator {
@@ -255,6 +255,6 @@ make_jump_iterator(const Iter& it,
   return jump_iterator<Iter>(it, step_length, distance_from_begin,
                              distance_to_end);
 }
-}  // namespace internal
+}  // namespace linalg_detail
 }  // namespace insight
-#endif  // INCLUDE_INSIGHT_INTERNAL_JUMP_ITERATOR_H_
+#endif  // INCLUDE_INSIGHT_LINALG_DETAIL_JUMP_ITERATOR_H_

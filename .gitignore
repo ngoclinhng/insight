@@ -4,3 +4,4 @@ GRTAGS
 GTAGS
 .dir-locals.el
 config/
+.DS_Store

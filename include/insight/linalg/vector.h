@@ -12,12 +12,11 @@
 #include <numeric>
 #include <cmath>
 
-#include "insight/allocator.h"
+#include "insight/memory.h"
 
 #include "insight/linalg/detail/expression_evaluator.h"
-
-#include "insight/internal/dense_base.h"
-#include "insight/internal/math_functions.h"
+#include "insight/linalg/detail//dense_base.h"
+#include "insight/linalg/detail/blas_routines.h"
 
 #include "glog/logging.h"
 
@@ -26,10 +25,10 @@ namespace insight {
 // Dense column vector.
 template<typename T, typename Alloc = allocator<T> >  // NOLINT
 class vector
-    : private internal::dense_base<T, Alloc>,
+    : private linalg_detail::dense_base<T, Alloc>,
       public linalg_detail::vector_expression<vector<T, Alloc> > {
  private:
-  using base = internal::dense_base<T, Alloc>;
+  using base = linalg_detail::dense_base<T, Alloc>;
   using self = vector;
   using alloc_traits = typename base::alloc_traits;
 
@@ -500,7 +499,7 @@ vector<T, Alloc>::swap(vector& m) INSIGHT_NOEXCEPT_IF(
     !alloc_traits::propagate_on_container_swap::value ||
     internal::is_nothrow_swappable<allocator_type>::value) {
   DCHECK(alloc_traits::propagate_on_container_swap::value ||
-        (this->alloc_ == m.alloc_))
+         (this->alloc_ == m.alloc_))
       << "vector::swap Either propagate_on_container_swap must be true "
       << "or the allocators must compare equal";
   using std::swap;
@@ -676,7 +675,7 @@ template<typename T, typename Alloc>
 inline
 void
 vector<T, Alloc>::mul_scalar_(const value_type& scalar, std::true_type) {
-  internal::insight_scal(size(), scalar, this->begin_);
+  linalg_detail::blas_scal(size(), scalar, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -690,7 +689,7 @@ template<typename T, typename Alloc>
 inline
 void
 vector<T, Alloc>::div_scalar_(const value_type& scalar, std::true_type) {
-  internal::insight_scal(size(), value_type(1.0) / scalar, this->begin_);
+  linalg_detail::blas_scal(size(), value_type(1.0) / scalar, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -706,7 +705,7 @@ template<typename T, typename Alloc>
 inline
 void
 vector<T, Alloc>::add_vector_(const vector& m, std::true_type) {
-  internal::insight_add(size(), m.data(), this->begin_, this->begin_);
+  linalg_detail::blas_add(size(), m.data(), this->begin_, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -721,7 +720,7 @@ template<typename T, typename Alloc>
 inline
 void
 vector<T, Alloc>::sub_vector_(const vector& m, std::true_type) {
-  internal::insight_sub(size(), this->begin_, m.data(), this->begin_);
+  linalg_detail::blas_sub(size(), this->begin_, m.data(), this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -736,7 +735,7 @@ template<typename T, typename Alloc>
 inline
 void
 vector<T, Alloc>::mul_vector_(const vector& m, std::true_type) {
-  internal::insight_mul(size(), m.data(), this->begin_, this->begin_);
+  linalg_detail::blas_mul(size(), m.data(), this->begin_, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -751,7 +750,7 @@ template<typename T, typename Alloc>
 inline
 void
 vector<T, Alloc>::div_vector_(const vector& m, std::true_type) {
-  internal::insight_div(size(), this->begin_, m.data(), this->begin_);
+  linalg_detail::blas_div(size(), this->begin_, m.data(), this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -765,7 +764,7 @@ vector<T, Alloc>::div_vector_(const vector& m, std::false_type) {  // NOLINT
 template<typename T, typename Alloc>
 inline
 T vector<T, Alloc>::nrm2_(std::true_type) const {
-  return internal::insight_nrm2(size(), this->begin_);
+  return  linalg_detail::blas_nrm2(size(), this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -782,7 +781,7 @@ template<typename T, typename Alloc>
 inline
 T
 vector<T, Alloc>::dot_(const vector& v, std::true_type) const {
-  return internal::insight_dot(size(), this->begin_, v.data());
+  return  linalg_detail::blas_dot(size(), this->begin_, v.data());
 }
 
 template<typename T, typename Alloc>

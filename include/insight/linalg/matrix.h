@@ -10,14 +10,13 @@
 #include <utility>
 #include <initializer_list>
 
-#include "insight/allocator.h"
+#include "insight/memory.h"
 
 #include "insight/linalg/detail/row_view.h"
 #include "insight/linalg/detail/col_view.h"
 #include "insight/linalg/detail/expression_evaluator.h"
-
-#include "insight/internal/dense_base.h"
-#include "insight/internal/math_functions.h"
+#include "insight/linalg/detail//dense_base.h"
+#include "insight/linalg/detail/blas_routines.h"
 
 #include "glog/logging.h"
 
@@ -26,10 +25,10 @@ namespace insight {
 // Dense, row-major order matrix.
 template<typename T, typename Alloc = allocator<T> >  // NOLINT
 class matrix
-    : private internal::dense_base<T, Alloc>,
+    : private linalg_detail::dense_base<T, Alloc>,
   public linalg_detail::matrix_expression<matrix<T, Alloc> > {
  private:
-  using base = internal::dense_base<T, Alloc>;
+  using base = linalg_detail::dense_base<T, Alloc>;
   using self = matrix;
   using alloc_traits = typename base::alloc_traits;
 
@@ -847,7 +846,7 @@ template<typename T, typename Alloc>
 inline
 void
 matrix<T, Alloc>::mul_scalar_(const_reference scalar, std::true_type) {
-  internal::insight_scal(size(), scalar, this->begin_);
+  linalg_detail::blas_scal(size(), scalar, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -861,7 +860,7 @@ template<typename T, typename Alloc>
 inline
 void
 matrix<T, Alloc>::div_scalar_(const_reference scalar, std::true_type) {
-  internal::insight_scal(size(), value_type(1.0) / scalar, this->begin_);
+  linalg_detail::blas_scal(size(), value_type(1.0) / scalar, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -877,7 +876,7 @@ template<typename T, typename Alloc>
 inline
 void
 matrix<T, Alloc>::add_matrix_(const matrix& m, std::true_type) {
-  internal::insight_add(size(), m.data(), this->begin_, this->begin_);
+  linalg_detail::blas_add(size(), m.data(), this->begin_, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -892,7 +891,7 @@ template<typename T, typename Alloc>
 inline
 void
 matrix<T, Alloc>::sub_matrix_(const matrix& m, std::true_type) {
-  internal::insight_sub(size(), this->begin_, m.data(), this->begin_);
+  linalg_detail::blas_sub(size(), this->begin_, m.data(), this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -907,7 +906,7 @@ template<typename T, typename Alloc>
 inline
 void
 matrix<T, Alloc>::mul_matrix_(const matrix& m, std::true_type) {
-  internal::insight_mul(size(), m.data(), this->begin_, this->begin_);
+  linalg_detail::blas_mul(size(), m.data(), this->begin_, this->begin_);
 }
 
 template<typename T, typename Alloc>
@@ -922,7 +921,7 @@ template<typename T, typename Alloc>
 inline
 void
 matrix<T, Alloc>::div_matrix_(const matrix& m, std::true_type) {
-  internal::insight_div(size(), this->begin_, m.data(), this->begin_);
+  linalg_detail::blas_div(size(), this->begin_, m.data(), this->begin_);
 }
 
 template<typename T, typename Alloc>

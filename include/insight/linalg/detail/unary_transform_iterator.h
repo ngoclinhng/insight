@@ -2,14 +2,14 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_INTERNAL_UNARY_TRANSFORM_ITERATOR_H_
-#define INCLUDE_INSIGHT_INTERNAL_UNARY_TRANSFORM_ITERATOR_H_
+#ifndef INCLUDE_INSIGHT_LINALG_DETAIL_UNARY_TRANSFORM_ITERATOR_H_
+#define INCLUDE_INSIGHT_LINALG_DETAIL_UNARY_TRANSFORM_ITERATOR_H_
 
 #include <iterator>
 #include <type_traits>
 
 namespace insight {
-namespace internal {
+namespace linalg_detail {
 
 template<typename Iter, typename Functor>
 class unary_transform_iterator {
@@ -169,6 +169,6 @@ make_unary_transform_iterator(const Iter& it, const Functor& f) {
   return unary_transform_iterator<Iter, Functor>(it, f);
 }
 
-}  // namespace internal
+}  // namespace linalg_detail
 }  // namespace insight
-#endif  // INCLUDE_INSIGHT_INTERNAL_UNARY_TRANSFORM_ITERATOR_H_
+#endif  // INCLUDE_INSIGHT_LINALG_DETAIL_UNARY_TRANSFORM_ITERATOR_H_

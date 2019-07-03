@@ -4,33 +4,33 @@
 
 #include <cmath>
 
-#include "insight/internal/math_functions.h"
+#include "insight/linalg/detail/blas_routines.h"
 
 namespace insight {
-namespace internal {
+namespace linalg_detail {
 
 // X <- α * X.
 
 template<>
-void insight_scal<float>(const int N, const float alpha, float* X) {
+void blas_scal<float>(const int N, const float alpha, float* X) {
   cblas_sscal(N, alpha, X, 1);
 }
 
 template<>
-void insight_scal<double>(const int N, const double alpha, double* X) {
+void blas_scal<double>(const int N, const double alpha, double* X) {
   cblas_dscal(N, alpha, X, 1);
 }
 
 // Y <- alpha * X + Y
 
 template<>
-void insight_axpy<float>(const int N, const float alpha, const float* X,
+void blas_axpy<float>(const int N, const float alpha, const float* X,
                          float* Y) {
   cblas_saxpy(N, alpha, X, 1, Y, 1);
 }
 
 template<>
-void insight_axpy<double>(const int N, const double alpha, const double* X,
+void blas_axpy<double>(const int N, const double alpha, const double* X,
                           double* Y) {
   cblas_daxpy(N, alpha, X, 1, Y, 1);
 }
@@ -38,7 +38,7 @@ void insight_axpy<double>(const int N, const double alpha, const double* X,
 // Y <- alpha * X + beta * Y
 
 template<>
-void insight_axpby<float>(const int N, const float alpha, const float* X,
+void blas_axpby<float>(const int N, const float alpha, const float* X,
                           const float beta, float* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   catlas_saxpby(N, alpha, X, 1, beta, Y, 1);
@@ -48,7 +48,7 @@ void insight_axpby<float>(const int N, const float alpha, const float* X,
 }
 
 template<>
-void insight_axpby<double>(const int N, const double alpha, const double* X,
+void blas_axpby<double>(const int N, const double alpha, const double* X,
                            const double beta, double* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   catlas_daxpby(N, alpha, X, 1, beta, Y, 1);
@@ -60,7 +60,7 @@ void insight_axpby<double>(const int N, const double alpha, const double* X,
 // y <- αAx + βy.
 
 template<>
-void insight_gemv<float>(const CBLAS_TRANSPOSE TransA,
+void blas_gemv<float>(const CBLAS_TRANSPOSE TransA,
                          const int M,
                          const int N,
                          const float alpha,
@@ -72,7 +72,7 @@ void insight_gemv<float>(const CBLAS_TRANSPOSE TransA,
 }
 
 template<>
-void insight_gemv<double>(const CBLAS_TRANSPOSE TransA,
+void blas_gemv<double>(const CBLAS_TRANSPOSE TransA,
                           const int M,
                           const int N,
                           const double alpha,
@@ -86,7 +86,7 @@ void insight_gemv<double>(const CBLAS_TRANSPOSE TransA,
 // Gemm.
 
 template<>
-void insight_gemm<float>(const CBLAS_TRANSPOSE TransA,
+void blas_gemm<float>(const CBLAS_TRANSPOSE TransA,
                          const CBLAS_TRANSPOSE TransB,
                          const int M,
                          const int N,
@@ -103,7 +103,7 @@ void insight_gemm<float>(const CBLAS_TRANSPOSE TransA,
 }
 
 template<>
-void insight_gemm<double>(const CBLAS_TRANSPOSE TransA,
+void blas_gemm<double>(const CBLAS_TRANSPOSE TransA,
                           const CBLAS_TRANSPOSE TransB,
                           const int M,
                           const int N,
@@ -122,31 +122,31 @@ void insight_gemm<double>(const CBLAS_TRANSPOSE TransA,
 // Computes the L2 norm (Euclidian length) of a vector.
 
 template<>
-float insight_nrm2<float>(const int N, const float* X) {
+float blas_nrm2<float>(const int N, const float* X) {
   return cblas_snrm2(N, X, 1);
 }
 
 template<>
-double insight_nrm2<double>(const int N, const double* X) {
+double blas_nrm2<double>(const int N, const double* X) {
   return cblas_dnrm2(N, X, 1);
 }
 
 // Compute the dot product of two vectors.
 
 template<>
-float insight_dot<float>(const int N, const float* X, const float* Y) {
+float blas_dot<float>(const int N, const float* X, const float* Y) {
   return cblas_sdot(N, X, 1, Y, 1);
 }
 
 template<>
-double insight_dot<double>(const int N, const double* X, const double* Y) {
+double blas_dot<double>(const int N, const double* X, const double* Y) {
   return cblas_ddot(N, X, 1, Y, 1);
 }
 
 // Adds two vectors: Z = X + Y element-wise.
 
 template<>
-void insight_add<float>(const int N, const float* X, const float* Y,
+void blas_add<float>(const int N, const float* X, const float* Y,
                         float* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vadd(X, 1, Y, 1, Z, 1, N);
@@ -162,7 +162,7 @@ void insight_add<float>(const int N, const float* X, const float* Y,
 }
 
 template<>
-void insight_add<double>(const int N, const double* X, const double* Y,
+void blas_add<double>(const int N, const double* X, const double* Y,
                          double* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vaddD(X, 1, Y, 1, Z, 1, N);
@@ -181,7 +181,7 @@ void insight_add<double>(const int N, const double* X, const double* Y,
 // stores the result in Z.
 
 template<>
-void insight_sub<float>(const int N, const float* X, const float* Y,
+void blas_sub<float>(const int N, const float* X, const float* Y,
                         float* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vsub(Y, 1, X, 1, Z, 1, N);
@@ -197,7 +197,7 @@ void insight_sub<float>(const int N, const float* X, const float* Y,
 }
 
 template<>
-void insight_sub<double>(const int N, const double* X, const double* Y,
+void blas_sub<double>(const int N, const double* X, const double* Y,
                          double* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vsubD(Y, 1, X, 1, Z, 1, N);
@@ -216,7 +216,7 @@ void insight_sub<double>(const int N, const double* X, const double* Y,
 // stores the result in Z.
 
 template<>
-void insight_mul<float>(const int N, const float* X, const float* Y,
+void blas_mul<float>(const int N, const float* X, const float* Y,
                         float* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vmul(Y, 1, X, 1, Z, 1, N);
@@ -230,7 +230,7 @@ void insight_mul<float>(const int N, const float* X, const float* Y,
 }
 
 template<>
-void insight_mul<double>(const int N, const double* X, const double* Y,
+void blas_mul<double>(const int N, const double* X, const double* Y,
                          double* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vmulD(Y, 1, X, 1, Z, 1, N);
@@ -247,7 +247,7 @@ void insight_mul<double>(const int N, const double* X, const double* Y,
 // the result in Z.
 
 template<>
-void insight_div<float>(const int N, const float* X, const float* Y,
+void blas_div<float>(const int N, const float* X, const float* Y,
                         float* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vdiv(Y, 1, X, 1, Z, 1, N);
@@ -261,7 +261,7 @@ void insight_div<float>(const int N, const float* X, const float* Y,
 }
 
 template<>
-void insight_div<double>(const int N, const double* X, const double* Y,
+void blas_div<double>(const int N, const double* X, const double* Y,
                          double* Z) {
 #ifdef INSIGHT_USE_ACCELERATE
   vDSP_vdivD(Y, 1, X, 1, Z, 1, N);
@@ -278,7 +278,7 @@ void insight_div<double>(const int N, const double* X, const double* Y,
 // result in vector Y.
 
 template<>
-void insight_sqrt<float>(const int N, const float* X, float* Y) {
+void blas_sqrt<float>(const int N, const float* X, float* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   int n = N;
   vvsqrtf(Y, X, &n);
@@ -292,7 +292,7 @@ void insight_sqrt<float>(const int N, const float* X, float* Y) {
 }
 
 template<>
-void insight_sqrt<double>(const int N, const double* X, double* Y) {
+void blas_sqrt<double>(const int N, const double* X, double* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   int n = N;
   vvsqrt(Y, X, &n);
@@ -309,7 +309,7 @@ void insight_sqrt<double>(const int N, const double* X, double* Y) {
 // stores the result in vector Y.
 
 template<>
-void insight_exp<float>(const int N, const float* X, float* Y) {
+void blas_exp<float>(const int N, const float* X, float* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   int n = N;
   vvexpf(Y, X, &n);
@@ -323,7 +323,7 @@ void insight_exp<float>(const int N, const float* X, float* Y) {
 }
 
 template<>
-void insight_exp<double>(const int N, const double* X, double* Y) {
+void blas_exp<double>(const int N, const double* X, double* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   int n = N;
   vvexp(Y, X, &n);
@@ -340,7 +340,7 @@ void insight_exp<double>(const int N, const double* X, double* Y) {
 // stores the result in vector Y.
 
 template<>
-void insight_log<float>(const int N, const float* X, float* Y) {
+void blas_log<float>(const int N, const float* X, float* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   int n = N;
   vvlogf(Y, X, &n);
@@ -354,7 +354,7 @@ void insight_log<float>(const int N, const float* X, float* Y) {
 }
 
 template<>
-void insight_log<double>(const int N, const double* X, double* Y) {
+void blas_log<double>(const int N, const double* X, double* Y) {
 #ifdef INSIGHT_USE_ACCELERATE
   int n = N;
   vvlog(Y, X, &n);
@@ -367,5 +367,5 @@ void insight_log<double>(const int N, const double* X, double* Y) {
 #endif
 }
 
-}  // namespace internal
+}  // namespace linalg_detail
 }  // namespace insight

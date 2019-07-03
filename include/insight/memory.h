@@ -25,19 +25,20 @@
 #include <cstdlib>
 #endif
 
+#include "insight/internal/type_traits.h"
+
 namespace insight {
 
 #if defined(INSIGHT_USE_TBB_SCALABLE_MALLOC)
 
 template<typename T>
-using insight_allocator = tbb::scalable_allocator<T>;
+using allocator = tbb::scalable_allocator<T>;
 
 #else
 
-// custom insight_allocator
-
+// custom allocator
 template<typename T>
-class insight_allocator {
+class allocator {
  public:
   using value_type = T;
   using pointer = value_type*;
@@ -47,13 +48,11 @@ class insight_allocator {
   using size_type = std::size_t;
   using difference_type = std::ptrdiff_t;
 
-  template<typename U> struct rebind {
-    using other = insight_allocator<U>;
-  };
+  template<typename U> struct rebind { using other = allocator<U>; };
 
-  insight_allocator() throw() {}
-  insight_allocator(const insight_allocator&) throw() { }
-  template<typename U> insight_allocator(const insight_allocator<U>&) throw() {}
+  allocator()  noexcept {}
+  allocator(const allocator&)  noexcept { }
+  template<typename U> allocator(const allocator<U>&)  noexcept {}
 
   pointer address(reference x) const {return &x;}
   const_pointer address(const_reference x) const {return &x;}
@@ -81,7 +80,7 @@ class insight_allocator {
     p = reinterpret_cast<pointer>(std::malloc(n_bytes));
 #endif
     if (!p) {
-      LOG(FATAL) << "insight_allocator: either requested size was too large or "
+      LOG(FATAL) << "allocator: either requested size was too large or "
                  << "not enough available heap memory";
     }
     return p;
@@ -102,7 +101,7 @@ class insight_allocator {
   }
 
   //! Largest value for which method allocate might succeed.
-  size_type max_size() const throw() {
+  size_type max_size() const noexcept {
     size_type absolutemax = static_cast<size_type>(-1) / sizeof (value_type);
     return (absolutemax > 0 ? absolutemax : 1);
   }
@@ -115,33 +114,54 @@ class insight_allocator {
   void destroy(pointer p) {
     p->~value_type();
   }
-};  // insight_allocator
+};  // allocator
 
 template<>
-class insight_allocator<void> {
+class allocator<void> {
  public:
   using pointer = void*;
   using const_pointer = const void*;
   using value_type = void;
 
-  template<class U> struct rebind {
-    using  other = insight_allocator<U>;
-  };
+  template<class U> struct rebind { using  other = allocator<U>; };
 };
 
 template<typename T, typename U>
-inline bool operator==(const insight_allocator<T>&,
-                       const insight_allocator<U>&) {
+inline bool operator==(const allocator<T>&, const allocator<U>&) {
   return true;
 }
 
 template<typename T, typename U>
-inline bool operator!=(const insight_allocator<T>&,
-                       const insight_allocator<U>&) {
+inline bool operator!=(const allocator<T>&, const allocator<U>&) {  // NOLINT
   return false;
 }
 
 #endif  // custom alllocator.
+
+// Helper for conatiner swap. See [1] for reference
+//
+// [1] - https://en.cppreference.com/w/cpp/named_req/AllocatorAwareContainer
+
+template<typename Alloc>
+inline
+void swap_allocator(Alloc& a1, Alloc& a2)  // NOLINT
+    INSIGHT_NOEXCEPT_IF(internal::is_nothrow_swappable<Alloc>::value) {
+  // allocator is replaced iff progagate_on_container_swap is true.
+  swap_allocator(a1, a2, std::allocator_traits<Alloc>::progagate_on_container_swap::value);  // NOLINT
+}
+
+// The old allocator is replaced by the one in other container.
+template<typename Alloc>
+void swap_allocator(Alloc& a1, Alloc& a2, std::true_type)  // NOLINT
+    INSIGHT_NOEXCEPT_IF(internal::is_nothrow_swappable<Alloc>::value) {
+  using std::swap;
+  swap(a1, a2);
+}
+
+// No swap happens. The old allocator is kept.
+template<typename Alloc>
+void swap_allocator(Alloc&, Alloc&, std::false_type) INSIGHT_NOEXCEPT {
+};
 
 }  // namespace insight
 #endif  // INCLUDE_INSIGHT_MEMORY_H_

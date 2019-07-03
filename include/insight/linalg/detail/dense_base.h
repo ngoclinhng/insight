@@ -2,8 +2,8 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_INTERNAL_DENSE_BASE_H_
-#define INCLUDE_INSIGHT_INTERNAL_DENSE_BASE_H_
+#ifndef INCLUDE_INSIGHT_LINALG_DETAIL_DENSE_BASE_H_
+#define INCLUDE_INSIGHT_LINALG_DETAIL_DENSE_BASE_H_
 
 #include <utility>
 #include <memory>
@@ -13,7 +13,7 @@
 #include "insight/internal/port.h"
 
 namespace insight {
-namespace internal {
+namespace linalg_detail {
 template<typename T, typename Alloc>
 class dense_base {
  public:
@@ -176,6 +176,6 @@ dense_base<T, Alloc>::destruct_at_end_(pointer new_end) INSIGHT_NOEXCEPT {
   destruct_at_end_(new_end, std::integral_constant<bool, std::is_trivially_destructible<value_type>::value>());  // NOLINT
 }
 
-}  // namespace internal
+}  // namespace linalg_detail
 }  // namespace insight
-#endif  // INCLUDE_INSIGHT_INTERNAL_DENSE_BASE_H_
+#endif  // INCLUDE_INSIGHT_LINALG_DETAIL_DENSE_BASE_H_

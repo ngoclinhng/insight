@@ -2,8 +2,8 @@
 //
 // Author: mail2ngoclinh@gmail.com (Ngoc Linh)
 
-#ifndef INCLUDE_INSIGHT_INTERNAL_MATH_FUNCTIONS_H_
-#define INCLUDE_INSIGHT_INTERNAL_MATH_FUNCTIONS_H_
+#ifndef INCLUDE_INSIGHT_LINALG_DETAIL_BLAS_ROUTINES_H_
+#define INCLUDE_INSIGHT_LINALG_DETAIL_BLAS_ROUTINES_H_
 
 #include "insight/internal/port.h"
 
@@ -18,24 +18,24 @@ extern "C" {
 #endif
 
 namespace insight {
-namespace internal {
+namespace linalg_detail {
 
 // X <- α * X.
 template<typename T>
-void insight_scal(const int N, const T alpha, T* X);
+void blas_scal(const int N, const T alpha, T* X);
 
 // Y <- alpha * X + Y
 template<typename T>
-void insight_axpy(const int N, const T alpha, const T* X, T* Y);
+void blas_axpy(const int N, const T alpha, const T* X, T* Y);
 
 // Y <- alpha * X + beta * Y
 template<typename T>
-void insight_axpby(const int N, const T alpha, const T* X, const T beta,
+void blas_axpby(const int N, const T alpha, const T* X, const T beta,
            T* Y);
 
 // y <- αAx + βy.
 template<typename T>
-void insight_gemv(const CBLAS_TRANSPOSE TransA,
+void blas_gemv(const CBLAS_TRANSPOSE TransA,
                   const int M,
                   const int N,
                   const T alpha,
@@ -58,7 +58,7 @@ void insight_gemv(const CBLAS_TRANSPOSE TransA,
 //
 //    with optional use of transposed forms of A, B, or both.
 template<typename T>
-void insight_gemm(const CBLAS_TRANSPOSE TransA,
+void blas_gemm(const CBLAS_TRANSPOSE TransA,
                   const CBLAS_TRANSPOSE TransB,
                   const int M,
                   const int N,
@@ -71,45 +71,45 @@ void insight_gemm(const CBLAS_TRANSPOSE TransA,
 
 // Computes the L2 norm (Euclidian length) of a vector.
 template<typename T>
-T insight_nrm2(const int N, const T* X);
+T blas_nrm2(const int N, const T* X);
 
 // Compute the dot product of two vectors.
 template<typename T>
-T insight_dot(const int N, const T* X, const T* Y);
+T blas_dot(const int N, const T* X, const T* Y);
 
 // Adds two vectors: Z = X + Y element-wise.
 template<typename T>
-void insight_add(const int N, const T* X, const T* Y, T* Z);
+void blas_add(const int N, const T* X, const T* Y, T* Z);
 
 // Performs element by element subtraction of vector Y from vector X, and
 // stores the result in Z.
 template<typename T>
-void insight_sub(const int N, const T* X, const T* Y, T* Z);
+void blas_sub(const int N, const T* X, const T* Y, T* Z);
 
 // Performs element by element multiplication of vector X and vector Y, and
 // stores the result in Z.
 template<typename T>
-void insight_mul(const int N, const T* X, const T* Y, T* Z);
+void blas_mul(const int N, const T* X, const T* Y, T* Z);
 
 // Performs element by element division of vector X by vector Y, and stores
 // the result in Z.
 template<typename T>
-void insight_div(const int N, const T* X, const T* Y, T* Z);
+void blas_div(const int N, const T* X, const T* Y, T* Z);
 
 // Performs element by element square root of the vector X, and stores the
 // result in vector Y.
 template<typename T>
-void insight_sqrt(const int N, const T* X, T* Y);
+void blas_sqrt(const int N, const T* X, T* Y);
 
 // Calculates e raised to the power of each element in a vector.
 template<typename T>
-void insight_exp(const int N, const T* X, T* Y);
+void blas_exp(const int N, const T* X, T* Y);
 
 // Calculate s the natural logarithm for each element in the vector X, and
 // stores the result in vector Y.
 template<typename T>
-void insight_log(const int N, const T* X, T* Y);
-}  // namespace internal
+void blas_log(const int N, const T* X, T* Y);
+}  // namespace linalg_detail
 }  // namespace insight
 
-#endif  // INCLUDE_INSIGHT_INTERNAL_MATH_FUNCTIONS_H_
+#endif  // INCLUDE_INSIGHT_LINALG_DETAIL_BLAS_ROUTINES_H_

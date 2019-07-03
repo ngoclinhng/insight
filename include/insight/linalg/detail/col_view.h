@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <iterator>
 
-#include "insight/internal/jump_iterator.h"
+#include "insight/linalg/detail/jump_iterator.h"
 #include "glog/logging.h"
 
 namespace insight {
@@ -29,8 +29,8 @@ struct col_view : public vector_expression<col_view<M> > {
   using value_type = typename iter_traits::value_type;
   using reference = typename iter_traits::reference;
   using size_type = typename M::size_type;
-  using iterator = internal::jump_iterator<typename M::iterator>;
-  using const_iterator = internal::jump_iterator<typename M::const_iterator>;
+  using iterator = jump_iterator<typename M::iterator>;
+  using const_iterator = jump_iterator<typename M::const_iterator>;
   using shape_type = typename M::shape_type;
 
   col_view(M* m, size_type col_index)
@@ -57,33 +57,33 @@ struct col_view : public vector_expression<col_view<M> > {
 
 
   inline iterator begin() {
-    return internal::make_jump_iterator(begin_, col_count_, 0,
-                                        std::distance(begin_, end_));
+    return make_jump_iterator(begin_, col_count_, 0,
+                              std::distance(begin_, end_));
   }
 
   inline const_iterator begin() const {
-    return internal::make_jump_iterator(cbegin_, col_count_, 0,
-                                        std::distance(cbegin_, cend_));
+    return make_jump_iterator(cbegin_, col_count_, 0,
+                              std::distance(cbegin_, cend_));
   }
 
   inline const_iterator cbegin() const {
-    return internal::make_jump_iterator(cbegin_, col_count_, 0,
-                                        std::distance(cbegin_, cend_));
+    return make_jump_iterator(cbegin_, col_count_, 0,
+                              std::distance(cbegin_, cend_));
   }
 
   inline iterator end() {
-    return internal::make_jump_iterator(end_, col_count_,
-                                        std::distance(begin_, end_), 0);
+    return make_jump_iterator(end_, col_count_,
+                              std::distance(begin_, end_), 0);
   }
 
   inline const_iterator end() const {
-    return internal::make_jump_iterator(cend_, col_count_,
-                                        std::distance(cbegin_, cend_), 0);
+    return make_jump_iterator(cend_, col_count_,
+                              std::distance(cbegin_, cend_), 0);
   }
 
   inline const_iterator cend() const {
-    return internal::make_jump_iterator(cend_, col_count_,
-                                        std::distance(cbegin_, cend_), 0);
+    return make_jump_iterator(cend_, col_count_,
+                              std::distance(cbegin_, cend_), 0);
   }
 
 

@@ -6,5 +6,7 @@
 #define INCLUDE_INSIGHT_LINALG_H_
 
 #include "insight/linalg/matrix.h"
+#include "insight/linalg/vector.h"
+#include "insight/linalg/functions.h"
 
 #endif  // INCLUDE_INSIGHT_LINALG_H_

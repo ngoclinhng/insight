@@ -6,7 +6,7 @@
 #define INCLUDE_INSIGHT_LINALG_DETAIL_SPECIAL_EXPRESSION_SUB_H_
 
 #include "insight/linalg/detail/special_expression_traits.h"
-#include "insight/internal/math_functions.h"
+#include "insight/linalg/detail/blas_routines.h"
 
 namespace insight {
 namespace linalg_detail {
@@ -28,8 +28,8 @@ template<typename E>
 inline
 void sub(const E& expr, typename E::value_type* buffer,
          typename std::enable_if<is_ax<E>::value>::type* = 0) {
-  internal::insight_axpy(expr.size(), -expr.scalar, expr.e.begin(),
-                         buffer);
+  blas_axpy(expr.size(), -expr.scalar, expr.e.begin(),
+            buffer);
 }
 
 // buffer -= matmul(aA, bx)
@@ -41,14 +41,14 @@ void sub(const matmul_expression<M, V>& expr,
          is_matmul_aAbx<matmul_expression<M, V> >::value>::type* = 0) {
   using value_type = typename matmul_expression<M, V>::value_type;
   matmul_aAbx_wrapper<M, V> wrapper(expr);
-  internal::insight_gemv(CblasNoTrans,
-                         wrapper.A_row_count(),
-                         wrapper.A_col_count(),
-                         -(wrapper.a() * wrapper.b()),
-                         wrapper.A(),
-                         wrapper.x(),
-                         value_type(1.0),
-                         buffer);
+  blas_gemv(CblasNoTrans,
+            wrapper.A_row_count(),
+            wrapper.A_col_count(),
+            -(wrapper.a() * wrapper.b()),
+            wrapper.A(),
+            wrapper.x(),
+            value_type(1.0),
+            buffer);
 }
 
 // buffer -= matmul(aA.t(), bx)
@@ -60,14 +60,14 @@ void sub(const matmul_expression<M, V>& expr,
          is_matmul_aAtbx<matmul_expression<M, V> >::value>::type* = 0) {
   using value_type = typename matmul_expression<M, V>::value_type;
   matmul_aAtbx_wrapper<M, V> wrapper(expr);
-  internal::insight_gemv(CblasTrans,
-                         wrapper.A_row_count(),
-                         wrapper.A_col_count(),
-                         -(wrapper.a() * wrapper.b()),
-                         wrapper.A(),
-                         wrapper.x(),
-                         value_type(1.0),
-                         buffer);
+  blas_gemv(CblasTrans,
+            wrapper.A_row_count(),
+            wrapper.A_col_count(),
+            -(wrapper.a() * wrapper.b()),
+            wrapper.A(),
+            wrapper.x(),
+            value_type(1.0),
+            buffer);
 }
 
 // buffer -= alpha * matmul(aA, bx).
@@ -78,14 +78,14 @@ void sub(const E& expr, typename E::value_type* buffer,
          is_alpha_times_matmul_aAbx<E>::value>::type* = 0) {
   using value_type = typename E::value_type;
   auto wrapper = make_matmul_aAbx_wrapper(expr.e);
-  internal::insight_gemv(CblasNoTrans,
-                         wrapper.A_row_count(),
-                         wrapper.A_col_count(),
-                         -wrapper.a() * wrapper.b() * expr.scalar,
-                         wrapper.A(),
-                         wrapper.x(),
-                         value_type(1.0),
-                         buffer);
+  blas_gemv(CblasNoTrans,
+            wrapper.A_row_count(),
+            wrapper.A_col_count(),
+            -wrapper.a() * wrapper.b() * expr.scalar,
+            wrapper.A(),
+            wrapper.x(),
+            value_type(1.0),
+            buffer);
 }
 
 // buffer -= alpha * matmul(aA.t(), bx).
@@ -96,14 +96,14 @@ void sub(const E& expr, typename E::value_type* buffer,
          is_alpha_times_matmul_aAtbx<E>::value>::type* = 0) {
   using value_type = typename E::value_type;
   auto wrapper = make_matmul_aAtbx_wrapper(expr.e);
-  internal::insight_gemv(CblasTrans,
-                         wrapper.A_row_count(),
-                         wrapper.A_col_count(),
-                         -wrapper.a() * wrapper.b() * expr.scalar,
-                         wrapper.A(),
-                         wrapper.x(),
-                         value_type(1.0),
-                         buffer);
+  blas_gemv(CblasTrans,
+            wrapper.A_row_count(),
+            wrapper.A_col_count(),
+            -wrapper.a() * wrapper.b() * expr.scalar,
+            wrapper.A(),
+            wrapper.x(),
+            value_type(1.0),
+            buffer);
 }
 }  // namespace special_expression
 }  // namespace linalg_detail

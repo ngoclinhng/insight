@@ -15,22 +15,28 @@
 
 # List all internal source files. Do NOT use file(GLOB *) to find source!
 set(INSIGHT_SOURCE_FILES
-  math_functions.cc
+  linalg/blas_routines.cc
 )
 
 # Also depends on the internal header files so that they appear in IDES.
-set(INSIGHT_INTERNAL_HEADER_FILES  "")
 file(GLOB INSIGHT_INTERNAL_HEADER_FILES
-  *.h
+  linalg/*.h
 )
 
 # Depend also on public headers so they appear in IDEs.
 file(GLOB INSIGHT_PUBLIC_HEADER_FILES
+  # Global public header files
   ${Insight_SOURCE_DIR}/include/insight/*.h
+
+  # linalg public header files
   ${Insight_SOURCE_DIR}/include/insight/linalg/*.h
-  ${Insight_SOURCE_DIR}/include/insight/linalg/detail/*.h)
+  ${Insight_SOURCE_DIR}/include/insight/linalg/detail/*.h
+)
+
+# Also depends on the public internal header files.
 file(GLOB INSIGHT_PUBLIC_INTERNAL_HEADER_FILES
-  ${Insight_SOURCE_DIR}/include/insight/internal/*.h)
+  ${Insight_SOURCE_DIR}/include/insight/internal/*.h
+)
 
 set(INSIGHT_LIBRARY_SOURCE
   ${INSIGHT_SOURCE_FILES}
@@ -149,8 +155,8 @@ if (BUILD_TESTING)
 
   target_link_libraries(gtest ${GLOG_LIBRARIES})
 
-  macro (INSIGHT_TEST NAME)
-    add_executable(${NAME}_test ${NAME}_test.cc)
+  macro (INSIGHT_TEST DIR NAME)
+    add_executable(${NAME}_test ${DIR}/${NAME}_test.cc)
 
     # Pull in local headers from the generated test directories when
     # insight_test() is invoked there, as well as the private headers in
@@ -162,6 +168,15 @@ if (BUILD_TESTING)
 	         ${INSIGHT_LIBRARY_PRIVATE_DEPENDENCIES_INCLUDE_DIRS}
              ${INSIGHT_LIBRARY_PRIVATE_DEPENDENCIES})
 
+   # The output directory for this test.
+   set(OUTPUT_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${DIR})
+
+   # We don't wanrt this test to be in the generic bin folder.
+   set_target_properties(${NAME}_test
+     PROPERTIES
+     RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY}
+   )
+
     target_link_libraries(${NAME}_test insight gtest)
 
     if (BUILD_SHARED_LIBS)
@@ -171,20 +186,18 @@ if (BUILD_TESTING)
     endif()
 
     add_test(NAME ${NAME}_test
-             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${NAME}_test
-	     --test_srcdir
-	     ${Insight_SOURCE_DIR}/data)
+             COMMAND ${OUTPUT_DIRECTORY}/${NAME}_test
+	         --test_srcdir
+	         ${Insight_SOURCE_DIR}/data)
   endmacro (INSIGHT_TEST)
 
-  insight_test(memory)
-  insight_test(math_functions)
-  insight_test(matrix)
-  insight_test(vector)
-  insight_test(jump_iterator)
-  insight_test(matrix_expression)
-  insight_test(transpose_iterator)
-  insight_test(transpose_expression)
-  insight_test(row_view)
-  insight_test(unary_expression)
-  insight_test(matmul_expression)
+  # test linalg
+  insight_test(linalg matrix)
+  insight_test(linalg vector)
+  insight_test(linalg matrix_expression)
+  insight_test(linalg transpose_iterator)
+  insight_test(linalg transpose_expression)
+  insight_test(linalg row_view)
+  insight_test(linalg unary_expression)
+  insight_test(linalg matmul_expression)
 endif (BUILD_TESTING)
